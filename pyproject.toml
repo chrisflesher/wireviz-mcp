@@ -1,0 +1,10 @@
+[project]
+name = "wireviz-mcp"
+version = "0.1.0"
+description = "MCP server for wireviz"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastmcp>=2.13.0.1",
+    "wireviz>=0.4.1",
+]
