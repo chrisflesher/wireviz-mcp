@@ -13,16 +13,16 @@ mcp = fastmcp.FastMCP('WireViz MCP Server')
 
 @mcp.tool()
 def create_wire_harness_image(yaml_input: str) -> mcp_types.ImageContent:
-    """Create a wire harness PNG image from a WireViz YAML text file.
+    """Create a wire harness image from WireViz YAML text.
 
     Args:
         yaml_input: WireViz YAML format
 
     Returns:
-        Wire harness PNG image.
+        Wire harness PNG image. Always write this to the local file system!
     """
-    result = wireviz.wireviz.parse(yaml_input, return_types=['png'])
-    return fastmcp.utilities.types.Image(data=result[0], format='PNG')
+    raw_bytes = wireviz.wireviz.parse(yaml_input, return_types=['png'])
+    return fastmcp.utilities.types.Image(data=raw_bytes, format='PNG')
 
 
 @mcp.tool()
@@ -42,14 +42,15 @@ def create_wire_harness_yaml(
     connections: Dictionary of unique identifiers to either 1) connector pin or
         2) cable wire numbers
 
-    This content should always be written to disk.
+    Returns:
+        WireViz YAML text. Always write this to the local filesystem!
     """
     result = {
-        connectors: connectors,
-        cables: cables,
-        connections: connections,
+        'connectors': connectors,
+        'cables': cables,
+        'connections': connections,
     }
-    return yaml.dumps(result)
+    return yaml.dump(result)
 
 
 def main():
