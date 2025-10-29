@@ -1,28 +1,55 @@
 """WireViz MCP Server using FastMCP."""
 
-import pathlib
+import typing
 
 import fastmcp
+import fastmcp.utilities.types
+import mcp.types as mcp_types
 import wireviz.wireviz
-import wireviz.wv_helper
+import yaml
 
 mcp = fastmcp.FastMCP('WireViz MCP Server')
 
 
 @mcp.tool()
-def create_wire_harness_pdf(input_path: pathlib.Path, output_path: pathlib.Path) -> None:
-    """Create a wire harness image from a WireViz YAML file.
+def create_wire_harness_image(yaml_input: str) -> mcp_types.ImageContent:
+    """Create a wire harness PNG image from a WireViz YAML text file.
 
     Args:
-        input_path: Input filename, WireViz YAML format
-        output_path: Output filename, PDF format
+        yaml_input: WireViz YAML format
+
+    Returns:
+        Wire harness PNG image.
     """
-    yaml_input = wireviz.wv_helper.file_read_text(input_path)
-    wireviz.wireviz.parse(
-        yaml_input,
-        output_formats=['pdf'],
-        output_dir=output_path.parent,
-        output_name=output_path.stem)
+    result = wireviz.wireviz.parse(yaml_input, return_types=['png'])
+    return fastmcp.utilities.types.Image(data=result[0], format='PNG')
+
+
+@mcp.tool()
+def create_wire_harness_yaml(
+        connectors: typing.Dict[str, typing.Dict[str, str]],
+        cables: typing.Dict[str, typing.Dict[str, typing.Any]],
+        connections: typing.List[typing.List[typing.Dict[str, typing.Any]]],
+        ) -> str:
+    """Create WireViz YAML text.
+
+    connectors: Dictionary of unique connector designator (e.g. X1, X2, etc.) to
+        attributes. Valid attribues are type, subtype, color, and image.
+    cables: Dictionary of unique cable designator (e.g. W1, W2, etc.) to
+        attributes. Valid attributes are category, type, gauge [AWG or mm2],
+        length [m or ft], shield, color, image, manufacturer, mpn, wirecount,
+        colors, and image
+    connections: Dictionary of unique identifiers to either 1) connector pin or
+        2) cable wire numbers
+
+    This content should always be written to disk.
+    """
+    result = {
+        connectors: connectors,
+        cables: cables,
+        connections: connections,
+    }
+    return yaml.dumps(result)
 
 
 def main():
