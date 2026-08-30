@@ -1,0 +1,30 @@
+[project]
+name = "wireviz-mcp"
+version = "1.0.0"
+description = "A WireViz MCP server"
+authors = [
+    {name = "Chris Flesher", email = "chris.flesher@gmail.com"},
+]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastmcp",
+    "wireviz",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "tox",
+]
+
+[project.scripts]
+wireviz-mcp-server = "wireviz_mcp.server:main"
+
+[project.urls]
+Homepage = "https://github.com/chrisflesher/wireviz-mcp"
+Repository = "https://github.com/chrisflesher/wireviz-mcp"
+Issues = "https://github.com/chrisflesher/wireviz-mcp/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["wireviz_mcp"]
