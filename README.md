@@ -35,7 +35,7 @@ Use wireviz-mcp to design a ConceptGraph and then Harness. Display a PNG.
 I'd like to design a wire harness to connect BatteryModuleControl J17 (Thruster
 1 port) to Qty 4x SFThruster J1. Do not connect the ground pin, only A and B.
 
-1. Convert references to text artifacts using pdftotext:
+1. Convert references to text files using pdftotext:
   - refs/200097-BatteryModuleControl.pdf
   - refs/200094-SFThruster.pdf
 

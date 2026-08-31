@@ -4,6 +4,7 @@ import enum
 import pathlib
 import shlex
 import subprocess
+import sys
 import tempfile
 import typing
 
@@ -251,13 +252,22 @@ def harness_to_wireviz(harness: Harness) -> str:
     return wireviz_yaml.replace("'<<': ", "<<: ")  # HACK: should use a custom YAML dumper...
 
 
+def _get_wireviz_cmd() -> str:
+    """Get the path to the wireviz executable."""
+    sys_wireviz = pathlib.Path(sys.executable).parent / 'wireviz'
+    if sys_wireviz.exists():
+        return str(sys_wireviz)
+    return 'wireviz'
+
+
 def wireviz_to_bom(wireviz_yaml: str) -> str:
     """Create a BOM text from a harness definition."""
     with tempfile.TemporaryDirectory() as temp_dir_str:
         temp_dir = pathlib.Path(temp_dir_str)
         in_path = temp_dir / 'harness.yaml'
         in_path.write_text(wireviz_yaml)
-        command = f'wireviz -f t --output-dir {in_path.parent} {in_path}'
+        wireviz_bin = _get_wireviz_cmd()
+        command = f'{wireviz_bin} -f t --output-dir {in_path.parent} {in_path}'
         subprocess.run(shlex.split(command), check=True)
         out_path = temp_dir / 'harness.bom.tsv'
         return out_path.read_text()
@@ -269,7 +279,8 @@ def wireviz_to_png(wireviz_yaml: str) -> bytes:
         temp_dir = pathlib.Path(temp_dir_str)
         in_path = temp_dir / 'harness.yaml'
         in_path.write_text(wireviz_yaml)
-        command = f'wireviz -f p --output-dir {in_path.parent} {in_path}'
+        wireviz_bin = _get_wireviz_cmd()
+        command = f'{wireviz_bin} -f p --output-dir {in_path.parent} {in_path}'
         subprocess.run(shlex.split(command), check=True)
         out_path = temp_dir / 'harness.png'
         return out_path.read_bytes()
