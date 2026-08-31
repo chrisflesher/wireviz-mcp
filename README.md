@@ -23,7 +23,7 @@ pip install git+https://github.com/chrisflesher/wireviz-mcp.git
 
 ### Example 1
 
-Connect a Molex 0039014031 to another one with pinout:
+Connect a Molex 0039014031 from "Source Device" to "Target Device" with same connector and pinout:
 1. 5V (red)
 2. PWM (yellow)
 3. GND (black)

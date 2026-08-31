@@ -162,15 +162,17 @@ class Harness(BaseModel):
                 if name in self.connectors:
                     connector = self.connectors[name]
                     connector_def = self.connector_defs[connector.index]
-                    for item in items:
-                        connector_def.pin_names[item]  # noqa: F841
+                    num_pins = len(connector_def.pin_names)
+                    if any(i < 0 or i >= num_pins for i in items):
+                        raise ValueError(f'connections[{index}][{name}]: invalid pin index')
                 elif name in self.cables:
                     cable = self.cables[name]
                     cable_def = self.cable_defs[cable.index]
-                    for item in items:
-                        cable_def.wires[item]  # noqa: F841
+                    num_wires = len(cable_def.wires)
+                    if any(i < 0 or i >= num_wires for i in items):
+                        raise ValueError(f'connections[{index}][{name}]: invalid wire index')
                 else:
-                    raise ValueError(f'connections[{index}]: {name} is not in connectors or cables')
+                    raise ValueError(f'connections[{index}]: "{name}" not found in connectors or cables')
         return self
 
 
@@ -247,7 +249,10 @@ def harness_to_wireviz(harness: Harness) -> str:
         cable['<<'] = cable_def
     connections_list = wireviz_dict['connections']
     for index, connection in enumerate(connections_list):
-        connections_list[index] = [{key: value} for key, value in connection.items()]
+        new_connection = []
+        for key, value in connection.items():
+            new_connection.append(_resolve_connection_target(key, value, harness))
+        connections_list[index] = new_connection
     wireviz_yaml = yaml.safe_dump(wireviz_dict, sort_keys=False)
     return wireviz_yaml.replace("'<<': ", "<<: ")  # HACK: should use a custom YAML dumper...
 
@@ -284,3 +289,12 @@ def wireviz_to_png(wireviz_yaml: str) -> bytes:
         subprocess.run(shlex.split(command), check=True)
         out_path = temp_dir / 'harness.png'
         return out_path.read_bytes()
+
+
+def _resolve_connection_target(key: str, indices: typing.List[int], harness: Harness) -> typing.Dict[str, typing.List[typing.Union[str, int]]]:
+    if key in harness.connectors:
+        pins = harness.connector_defs[harness.connectors[key].index].pin_names
+        return {key: [pins[i] for i in indices]}
+    if key in harness.cables:
+        return {key: [i + 1 for i in indices]}
+    return {key: indices}

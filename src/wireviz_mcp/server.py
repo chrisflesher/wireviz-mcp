@@ -16,7 +16,7 @@ mcp.add_tool(wireviz_mcp.common.wireviz_to_bom)
 def wireviz_to_png(wireviz_yaml: str) -> fastmcp.utilities.types.Image:
     """Create a PNG image from a harness definition."""
     png_bytes = wireviz_mcp.common.wireviz_to_png(wireviz_yaml)
-    return Image(data=png_bytes, format='png')
+    return fastmcp.utilities.types.Image(data=png_bytes, format='png')
 
 
 def main():

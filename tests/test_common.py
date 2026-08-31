@@ -95,6 +95,15 @@ def test_harness_validation_invalid_wire_index(harness):
         wireviz_mcp.common.Harness(**harness_data)
 
 
+def test_harness_validation_out_of_range_connection_index(harness):
+    """Test that creating a harness with an out-of-range connection pin index raises a ValueError."""
+    harness_data = harness.model_dump()
+    harness_data['connections'].append({'X1': [99]})
+
+    with pytest.raises(ValueError, match='invalid pin index'):
+        wireviz_mcp.common.Harness(**harness_data)
+
+
 def test_harness_to_wireviz(harness):
     """Test the conversion of a harness to a WireViz YAML string."""
     yaml_str = wireviz_mcp.common.harness_to_wireviz(harness)
@@ -119,7 +128,7 @@ def test_harness_to_wireviz(harness):
     assert data['cables']['W1']['length'] == 1.0
     assert len(data['cables']['W1']['wirelabels']) == 3
     assert data['cable_defs'][0]['shield'] is False
-    assert data['connections'] == [[{'X1': [2]}, {'W1': [1]}], [{'X1': [3]}, {'W1': [2]}], [{'X1': [5]}, {'W1': [0]}]]
+    assert data['connections'] == [[{'X1': ['3']}, {'W1': [2]}], [{'X1': ['4']}, {'W1': [3]}], [{'X1': ['6']}, {'W1': [1]}]]
 
 
 def test_wireviz_to_bom(wireviz_yaml):
