@@ -32,26 +32,6 @@ Procedure:
 1. Use wireviz-mcp concept_to_mermaid to generate a mermaid diagram, ask the user to approve it
 2. Use wireviz-mcp harness_to_wireviz and wireviz_to_png to generate a PNG, ask the user to approve it
 
-### Example 2
-
-I'd like to design a wire harness to connect BatteryModuleControl J17 (Thruster
-1 port) to Qty 4x SFThruster J1. Do not connect the ground pin, only A and B.
-
-1. Convert references to text files using pdftotext:
-  - refs/200097-BatteryModuleControl.pdf
-  - refs/200094-SFThruster.pdf
-
-2. For each connector use websearch to find which mating part is needed for the
-   harness. The Conn_01x03_Socket is a standard 3-pin 0.1" socket
-
-3. Design a ConceptGraph and display a mermaid diagram it to the user. Generate
-   a JSON artifact of the ConceptGraph.
-
-4. Ask the user if they approve the concept. Repeat step 3 until they do.
-
-5. Design a Harness and display a PNG of it to the user. Generate a JSON
-   artifact of the Harness.
-
 ## Developer
 
 To clone the repo and run unit tests:
