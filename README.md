@@ -19,9 +19,40 @@ Install the package using `pip`:
 pip install git+https://github.com/chrisflesher/wireviz-mcp.git
 ```
 
-## Contributing
+## Workflow Examples
 
-To run unit tests:
+### Example 1
+
+Connect a Molex 0039014031 to another one with pinout:
+1. 5V (red)
+2. PWM (yellow)
+3. GND (black)
+
+Use wireviz-mcp to design a ConceptGraph and then Harness. Display a PNG.
+
+### Example 2
+
+I'd like to design a wire harness to connect BatteryModuleControl J17 (Thruster
+1 port) to Qty 4x SFThruster J1. Do not connect the ground pin, only A and B.
+
+1. Convert references to text artifacts using pdftotext:
+  - refs/200097-BatteryModuleControl.pdf
+  - refs/200094-SFThruster.pdf
+
+2. For each connector use websearch to find which mating part is needed for the
+   harness. The Conn_01x03_Socket is a standard 3-pin 0.1" socket
+
+3. Design a ConceptGraph and display a mermaid diagram it to the user. Generate
+   a JSON artifact of the ConceptGraph.
+
+4. Ask the user if they approve the concept. Repeat step 3 until they do.
+
+5. Design a Harness and display a PNG of it to the user. Generate a JSON
+   artifact of the Harness.
+
+## Developer
+
+To clone the repo and run unit tests:
 
 ```
 git clone https://github.com/chrisflesher/wireviz-mcp.git

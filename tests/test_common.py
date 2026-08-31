@@ -80,7 +80,7 @@ def test_harness_validation_valid(harness):
 def test_harness_validation_invalid_pin_index(harness):
     """Test that creating a harness with an invalid pin index raises an IndexError."""
     harness_data = harness.model_dump()
-    harness_data['connectors']['X1']['pin_labels'][99] = 'extra'
+    harness_data['connectors']['X1']['pinlabels'][99] = 'extra'
 
     with pytest.raises(IndexError):
         wireviz_mcp.common.Harness(**harness_data)
@@ -89,7 +89,7 @@ def test_harness_validation_invalid_pin_index(harness):
 def test_harness_validation_invalid_wire_index(harness):
     """Test that creating a harness with an invalid wire index raises an IndexError."""
     harness_data = harness.model_dump()
-    harness_data['cables']['W1']['wire_labels'][99] = 'w4'
+    harness_data['cables']['W1']['wirelabels'][99] = 'w4'
 
     with pytest.raises(IndexError):
         wireviz_mcp.common.Harness(**harness_data)
@@ -110,14 +110,14 @@ def test_harness_to_wireviz(harness):
     assert data['connector_defs'][0]['subtype'] == 'female'
     assert data['connector_defs'][0]['color'] == 'BK'
     assert data['connector_defs'][0]['pins'] == ['1', '2', '3', '4', '5', '6', '7', '8', '9']
-    assert len(data['connectors']['X1']['pin_labels']) == 9
+    assert len(data['connectors']['X1']['pinlabels']) == 9
 
     # check cable fields
     assert data['cable_defs'][0]['category'] == 'bundled'
     assert data['cable_defs'][0]['colors'] == ['BN', 'BU', 'GN']
     assert data['cable_defs'][0]['gauge'] == 0.5  # Median of [0.5, 0.5, 0.75]
     assert data['cables']['W1']['length'] == 1.0
-    assert len(data['cables']['W1']['wire_labels']) == 3
+    assert len(data['cables']['W1']['wirelabels']) == 3
     assert data['cable_defs'][0]['shield'] is False
     assert data['connections'] == [[{'X1': [2]}, {'W1': [1]}], [{'X1': [3]}, {'W1': [2]}], [{'X1': [5]}, {'W1': [0]}]]
 

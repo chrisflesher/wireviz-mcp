@@ -229,10 +229,20 @@ def harness_to_wireviz(harness: Harness) -> str:
     for name, connector in wireviz_dict['connectors'].items():
         connector_def_index = connector.pop('index')
         connector_def = wireviz_dict['connector_defs'][connector_def_index]
+        pin_labels = connector.pop('pin_labels')
+        pinlabels = [''] * len(connector_def['pins'])
+        for index, label in pin_labels.items():
+            pinlabels[int(index)] = label
+        connector['pinlabels'] = pinlabels
         connector['<<'] = connector_def
     for name, cable in wireviz_dict['cables'].items():
         cable_def_index = cable.pop('index')
         cable_def = wireviz_dict['cable_defs'][cable_def_index]
+        wire_labels = cable.pop('wire_labels')
+        wirelabels = [''] * len(cable_def['colors'])
+        for index, label in wire_labels.items():
+            wirelabels[int(index)] = label
+        cable['wirelabels'] = wirelabels
         cable['<<'] = cable_def
     connections_list = wireviz_dict['connections']
     for index, connection in enumerate(connections_list):
