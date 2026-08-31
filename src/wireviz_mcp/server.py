@@ -1,6 +1,7 @@
 """WireViz MCP Server using FastMCP."""
 
 import fastmcp
+import fastmcp.utilities.types
 
 import wireviz_mcp.common
 
@@ -9,7 +10,13 @@ mcp = fastmcp.FastMCP('WireViz MCP Server')
 mcp.add_tool(wireviz_mcp.common.concept_to_mermaid)
 mcp.add_tool(wireviz_mcp.common.harness_to_wireviz)
 mcp.add_tool(wireviz_mcp.common.wireviz_to_bom)
-mcp.add_tool(wireviz_mcp.common.wireviz_to_png)
+
+
+@mcp.tool()
+def wireviz_to_png(wireviz_yaml: str) -> fastmcp.utilities.types.Image:
+    """Create a PNG image from a harness definition."""
+    png_bytes = wireviz_mcp.common.wireviz_to_png(wireviz_yaml)
+    return Image(data=png_bytes, format='png')
 
 
 def main():

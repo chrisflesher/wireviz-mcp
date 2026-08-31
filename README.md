@@ -28,7 +28,9 @@ Connect a Molex 0039014031 to another one with pinout:
 2. PWM (yellow)
 3. GND (black)
 
-Use wireviz-mcp to design a ConceptGraph and then Harness. Display a PNG.
+Procedure:
+1. Use wireviz-mcp concept_to_mermaid to generate a mermaid diagram, ask the user to approve it
+2. Use wireviz-mcp harness_to_wireviz and wireviz_to_png to generate a PNG, ask the user to approve it
 
 ### Example 2
 
