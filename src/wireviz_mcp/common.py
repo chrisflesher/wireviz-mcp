@@ -3,7 +3,9 @@
 import enum
 import pathlib
 import shlex
+import shutil
 import subprocess
+import sys
 import tempfile
 import typing
 
@@ -161,15 +163,17 @@ class Harness(BaseModel):
                 if name in self.connectors:
                     connector = self.connectors[name]
                     connector_def = self.connector_defs[connector.index]
-                    for item in items:
-                        connector_def.pin_names[item]  # noqa: F841
+                    num_pins = len(connector_def.pin_names)
+                    if any(i < 0 or i >= num_pins for i in items):
+                        raise ValueError(f'connections[{index}][{name}]: invalid pin index')
                 elif name in self.cables:
                     cable = self.cables[name]
                     cable_def = self.cable_defs[cable.index]
-                    for item in items:
-                        cable_def.wires[item]  # noqa: F841
+                    num_wires = len(cable_def.wires)
+                    if any(i < 0 or i >= num_wires for i in items):
+                        raise ValueError(f'connections[{index}][{name}]: invalid wire index')
                 else:
-                    raise ValueError(f'connections[{index}]: {name} is not in connectors or cables')
+                    raise ValueError(f'connections[{index}]: "{name}" not found in connectors or cables')
         return self
 
 
@@ -219,7 +223,7 @@ def harness_to_wireviz(harness: Harness) -> str:
     wireviz_dict = harness.model_dump(mode='json')
     for item in wireviz_dict['connector_defs']:
         item['subtype'] = item.pop('gender')
-        item['pins'] = item.pop('pin_names')
+        item['pins'] = [int(p) if isinstance(p, str) and p.isdigit() else p for p in item.pop('pin_names')]
     for item in wireviz_dict['cable_defs']:
         wires = item.pop('wires')
         item['colors'] = [wire['color'] for wire in wires]
@@ -229,14 +233,27 @@ def harness_to_wireviz(harness: Harness) -> str:
     for name, connector in wireviz_dict['connectors'].items():
         connector_def_index = connector.pop('index')
         connector_def = wireviz_dict['connector_defs'][connector_def_index]
+        pin_labels = connector.pop('pin_labels')
+        pinlabels = [''] * len(connector_def['pins'])
+        for index, label in pin_labels.items():
+            pinlabels[int(index)] = label
+        connector['pinlabels'] = pinlabels
         connector['<<'] = connector_def
     for name, cable in wireviz_dict['cables'].items():
         cable_def_index = cable.pop('index')
         cable_def = wireviz_dict['cable_defs'][cable_def_index]
+        wire_labels = cable.pop('wire_labels')
+        wirelabels = [''] * len(cable_def['colors'])
+        for index, label in wire_labels.items():
+            wirelabels[int(index)] = label
+        cable['wirelabels'] = wirelabels
         cable['<<'] = cable_def
     connections_list = wireviz_dict['connections']
     for index, connection in enumerate(connections_list):
-        connections_list[index] = [{key: value} for key, value in connection.items()]
+        new_connection = []
+        for key, value in connection.items():
+            new_connection.append(_resolve_connection_target(key, value, harness))
+        connections_list[index] = new_connection
     wireviz_yaml = yaml.safe_dump(wireviz_dict, sort_keys=False)
     return wireviz_yaml.replace("'<<': ", "<<: ")  # HACK: should use a custom YAML dumper...
 
@@ -247,7 +264,8 @@ def wireviz_to_bom(wireviz_yaml: str) -> str:
         temp_dir = pathlib.Path(temp_dir_str)
         in_path = temp_dir / 'harness.yaml'
         in_path.write_text(wireviz_yaml)
-        command = f'wireviz -f t --output-dir {in_path.parent} {in_path}'
+        wireviz_bin = _get_wireviz_cmd()
+        command = f'{wireviz_bin} -f t --output-dir {in_path.parent} {in_path}'
         subprocess.run(shlex.split(command), check=True)
         out_path = temp_dir / 'harness.bom.tsv'
         return out_path.read_text()
@@ -259,7 +277,31 @@ def wireviz_to_png(wireviz_yaml: str) -> bytes:
         temp_dir = pathlib.Path(temp_dir_str)
         in_path = temp_dir / 'harness.yaml'
         in_path.write_text(wireviz_yaml)
-        command = f'wireviz -f p --output-dir {in_path.parent} {in_path}'
+        wireviz_bin = _get_wireviz_cmd()
+        command = f'{wireviz_bin} -f p --output-dir {in_path.parent} {in_path}'
         subprocess.run(shlex.split(command), check=True)
         out_path = temp_dir / 'harness.png'
         return out_path.read_bytes()
+
+
+def _get_wireviz_cmd() -> str:
+    """Get the path to the wireviz executable."""
+    sys_wireviz = pathlib.Path(sys.executable).parent / 'wireviz'
+    if sys_wireviz.exists():
+        return str(sys_wireviz)
+    prefix_wireviz = pathlib.Path(sys.prefix) / 'bin' / 'wireviz'
+    if prefix_wireviz.exists():
+        return str(prefix_wireviz)
+    which_wireviz = shutil.which('wireviz')
+    if which_wireviz:
+        return which_wireviz
+    return 'wireviz'
+
+
+def _resolve_connection_target(key: str, indices: typing.List[int], harness: Harness) -> typing.Dict[str, typing.List[typing.Union[str, int]]]:
+    if key in harness.connectors:
+        pins = harness.connector_defs[harness.connectors[key].index].pin_names
+        return {key: [int(pins[i]) if isinstance(pins[i], str) and pins[i].isdigit() else pins[i] for i in indices]}
+    if key in harness.cables:
+        return {key: [i + 1 for i in indices]}
+    return {key: indices}

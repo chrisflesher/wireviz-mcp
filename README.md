@@ -19,9 +19,22 @@ Install the package using `pip`:
 pip install git+https://github.com/chrisflesher/wireviz-mcp.git
 ```
 
-## Contributing
+## Workflow Examples
 
-To run unit tests:
+### Example 1
+
+Connect a Molex 0039014031 from "Source Device" to "Target Device" with same connector and pinout:
+1. 5V (red)
+2. PWM (yellow)
+3. GND (black)
+
+Procedure:
+1. Use wireviz-mcp concept_to_mermaid to generate a mermaid diagram, ask the user to approve it
+2. Use wireviz-mcp harness_to_wireviz and wireviz_to_png to generate a PNG, ask the user to approve it
+
+## Developer
+
+To clone the repo and run unit tests:
 
 ```
 git clone https://github.com/chrisflesher/wireviz-mcp.git
