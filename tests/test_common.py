@@ -80,7 +80,7 @@ def test_harness_validation_valid(harness):
 def test_harness_validation_invalid_pin_index(harness):
     """Test that creating a harness with an invalid pin index raises an IndexError."""
     harness_data = harness.model_dump()
-    harness_data['connectors']['X1']['pinlabels'][99] = 'extra'
+    harness_data['connectors']['X1']['pin_labels'][99] = 'extra'
 
     with pytest.raises(IndexError):
         wireviz_mcp.common.Harness(**harness_data)
@@ -89,7 +89,7 @@ def test_harness_validation_invalid_pin_index(harness):
 def test_harness_validation_invalid_wire_index(harness):
     """Test that creating a harness with an invalid wire index raises an IndexError."""
     harness_data = harness.model_dump()
-    harness_data['cables']['W1']['wirelabels'][99] = 'w4'
+    harness_data['cables']['W1']['wire_labels'][99] = 'w4'
 
     with pytest.raises(IndexError):
         wireviz_mcp.common.Harness(**harness_data)
