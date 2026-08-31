@@ -258,20 +258,6 @@ def harness_to_wireviz(harness: Harness) -> str:
     return wireviz_yaml.replace("'<<': ", "<<: ")  # HACK: should use a custom YAML dumper...
 
 
-def _get_wireviz_cmd() -> str:
-    """Get the path to the wireviz executable."""
-    sys_wireviz = pathlib.Path(sys.executable).parent / 'wireviz'
-    if sys_wireviz.exists():
-        return str(sys_wireviz)
-    prefix_wireviz = pathlib.Path(sys.prefix) / 'bin' / 'wireviz'
-    if prefix_wireviz.exists():
-        return str(prefix_wireviz)
-    which_wireviz = shutil.which('wireviz')
-    if which_wireviz:
-        return which_wireviz
-    return 'wireviz'
-
-
 def wireviz_to_bom(wireviz_yaml: str) -> str:
     """Create a BOM text from a harness definition."""
     with tempfile.TemporaryDirectory() as temp_dir_str:
@@ -296,6 +282,20 @@ def wireviz_to_png(wireviz_yaml: str) -> bytes:
         subprocess.run(shlex.split(command), check=True)
         out_path = temp_dir / 'harness.png'
         return out_path.read_bytes()
+
+
+def _get_wireviz_cmd() -> str:
+    """Get the path to the wireviz executable."""
+    sys_wireviz = pathlib.Path(sys.executable).parent / 'wireviz'
+    if sys_wireviz.exists():
+        return str(sys_wireviz)
+    prefix_wireviz = pathlib.Path(sys.prefix) / 'bin' / 'wireviz'
+    if prefix_wireviz.exists():
+        return str(prefix_wireviz)
+    which_wireviz = shutil.which('wireviz')
+    if which_wireviz:
+        return which_wireviz
+    return 'wireviz'
 
 
 def _resolve_connection_target(key: str, indices: typing.List[int], harness: Harness) -> typing.Dict[str, typing.List[typing.Union[str, int]]]:
