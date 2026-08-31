@@ -3,6 +3,7 @@
 import enum
 import pathlib
 import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -222,7 +223,7 @@ def harness_to_wireviz(harness: Harness) -> str:
     wireviz_dict = harness.model_dump(mode='json')
     for item in wireviz_dict['connector_defs']:
         item['subtype'] = item.pop('gender')
-        item['pins'] = item.pop('pin_names')
+        item['pins'] = [int(p) if isinstance(p, str) and p.isdigit() else p for p in item.pop('pin_names')]
     for item in wireviz_dict['cable_defs']:
         wires = item.pop('wires')
         item['colors'] = [wire['color'] for wire in wires]
@@ -262,6 +263,12 @@ def _get_wireviz_cmd() -> str:
     sys_wireviz = pathlib.Path(sys.executable).parent / 'wireviz'
     if sys_wireviz.exists():
         return str(sys_wireviz)
+    prefix_wireviz = pathlib.Path(sys.prefix) / 'bin' / 'wireviz'
+    if prefix_wireviz.exists():
+        return str(prefix_wireviz)
+    which_wireviz = shutil.which('wireviz')
+    if which_wireviz:
+        return which_wireviz
     return 'wireviz'
 
 
@@ -294,7 +301,7 @@ def wireviz_to_png(wireviz_yaml: str) -> bytes:
 def _resolve_connection_target(key: str, indices: typing.List[int], harness: Harness) -> typing.Dict[str, typing.List[typing.Union[str, int]]]:
     if key in harness.connectors:
         pins = harness.connector_defs[harness.connectors[key].index].pin_names
-        return {key: [pins[i] for i in indices]}
+        return {key: [int(pins[i]) if isinstance(pins[i], str) and pins[i].isdigit() else pins[i] for i in indices]}
     if key in harness.cables:
         return {key: [i + 1 for i in indices]}
     return {key: indices}
