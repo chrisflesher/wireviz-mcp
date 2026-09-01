@@ -118,7 +118,7 @@ def test_harness_to_wireviz(harness):
     # check connector fields
     assert data['connector_defs'][0]['subtype'] == 'female'
     assert data['connector_defs'][0]['color'] == 'BK'
-    assert data['connector_defs'][0]['pins'] == ['1', '2', '3', '4', '5', '6', '7', '8', '9']
+    assert data['connector_defs'][0]['pins'] == [1, 2, 3, 4, 5, 6, 7, 8, 9]
     assert len(data['connectors']['X1']['pinlabels']) == 9
 
     # check cable fields
@@ -128,7 +128,7 @@ def test_harness_to_wireviz(harness):
     assert data['cables']['W1']['length'] == 1.0
     assert len(data['cables']['W1']['wirelabels']) == 3
     assert data['cable_defs'][0]['shield'] is False
-    assert data['connections'] == [[{'X1': ['3']}, {'W1': [2]}], [{'X1': ['4']}, {'W1': [3]}], [{'X1': ['6']}, {'W1': [1]}]]
+    assert data['connections'] == [[{'X1': [3]}, {'W1': [2]}], [{'X1': [4]}, {'W1': [3]}], [{'X1': [6]}, {'W1': [1]}]]
 
 
 def test_wireviz_to_bom(wireviz_yaml):

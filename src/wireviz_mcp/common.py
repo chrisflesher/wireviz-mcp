@@ -266,7 +266,7 @@ def wireviz_to_bom(wireviz_yaml: str) -> str:
         in_path.write_text(wireviz_yaml)
         wireviz_bin = _get_wireviz_cmd()
         command = f'{wireviz_bin} -f t --output-dir {in_path.parent} {in_path}'
-        subprocess.run(shlex.split(command), check=True)
+        subprocess.run(shlex.split(command), check=True, capture_output=True)
         out_path = temp_dir / 'harness.bom.tsv'
         return out_path.read_text()
 
@@ -279,7 +279,7 @@ def wireviz_to_png(wireviz_yaml: str) -> bytes:
         in_path.write_text(wireviz_yaml)
         wireviz_bin = _get_wireviz_cmd()
         command = f'{wireviz_bin} -f p --output-dir {in_path.parent} {in_path}'
-        subprocess.run(shlex.split(command), check=True)
+        subprocess.run(shlex.split(command), check=True, capture_output=True)
         out_path = temp_dir / 'harness.png'
         return out_path.read_bytes()
 
