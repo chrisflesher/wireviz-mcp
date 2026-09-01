@@ -4,7 +4,7 @@ Typical Workflow:
 1. Use concept_to_mermaid and mermaid_to_svg to generate a SVG, ask the user to approve it
 2. Use harness_to_wireviz and wireviz_to_png to generate a PNG, ask the user to approve it
 3. Use wireviz_to_bom to generate a BOM file (TSV)
-4. Provide the user with links to final output files (WireViz YAML, TSV, and PNG)
+4. Provide the user with full path names to final output files (WireViz YAML, TSV, and PNG)
 """
 
 import fastmcp
