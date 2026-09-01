@@ -13,7 +13,33 @@ The server exposes the following tools:
 
 ## Installation
 
-Edit `mcp_config.json` and add the following:
+### Option 1: pip
+
+Install to a virtual environment:
+
+```
+python -m venv .venv
+.venv/bin/pip install git+https://github.com/chrisflesher/wireviz-mcp.git
+```
+
+Edit `mcp_config.json` to add the server:
+
+```
+{
+  "mcpServers": {
+    "wireviz-mcp": {
+      "command": ".venv/bin/wireviz-mcp-server",
+      "args": []
+    }
+  }
+}
+```
+
+### Option 2: uvx
+
+Install using uvx to avoid the need for a virtual environment.
+
+Edit `mcp_config.json` to add the server:
 
 ```
 {
@@ -28,15 +54,6 @@ Edit `mcp_config.json` and add the following:
   }
 }
 ```
-
-## Workflow Examples
-
-### Example 1
-
-Use wireviz-mcp server to wire a Molex 0039014031 from "Source Device" to "Target Device" with same connector and pinout:
-1. 5V (red)
-2. PWM (yellow)
-3. GND (black)
 
 ## Developer
 
