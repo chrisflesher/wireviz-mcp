@@ -13,24 +13,30 @@ The server exposes the following tools:
 
 ## Installation
 
-Install the package using `pip`:
+Edit `mcp_config.json` and add the following:
 
-```bash
-pip install git+https://github.com/chrisflesher/wireviz-mcp.git
+```
+{
+  "mcpServers": {
+    "wireviz-mcp": {
+      "command": "uvx",
+      "args": [
+        "--from", "git+https://github.com/chrisflesher/wireviz-mcp.git",
+        "wireviz-mcp-server"
+      ]
+    }
+  }
+}
 ```
 
 ## Workflow Examples
 
 ### Example 1
 
-Connect a Molex 0039014031 from "Source Device" to "Target Device" with same connector and pinout:
+Use wireviz-mcp server to wire a Molex 0039014031 from "Source Device" to "Target Device" with same connector and pinout:
 1. 5V (red)
 2. PWM (yellow)
 3. GND (black)
-
-Procedure:
-1. Use wireviz-mcp concept_to_mermaid to generate a mermaid diagram, ask the user to approve it
-2. Use wireviz-mcp harness_to_wireviz and wireviz_to_png to generate a PNG, ask the user to approve it
 
 ## Developer
 
