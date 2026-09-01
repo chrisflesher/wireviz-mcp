@@ -7,6 +7,7 @@ A Model Context Protocol (MCP) server that integrates [WireViz](https://github.c
 The server exposes the following tools:
 
 - **`concept_to_mermaid`**: Translates a simplified design (`ConceptGraph`) into a Mermaid diagram to help plan the harness design.
+- **`mermaid_to_svg`**: Renders Mermaid diagram as SVG.
 - **`harness_to_wireviz`**: Translates a complete harness design (`Harness`) into WireViz YAML.
 - **`wireviz_to_bom`**: Generates a Bill of Materials (BOM) in TSV format from WireViz YAML.
 - **`wireviz_to_png`**: Renders WireViz YAML as PNG.
@@ -15,7 +16,7 @@ The server exposes the following tools:
 
 ### Option 1: pip
 
-Install to a virtual environment:
+Create a virtual environment:
 
 ```
 python -m venv .venv
@@ -37,8 +38,6 @@ Edit `mcp_config.json` to add the server:
 
 ### Option 2: uvx
 
-Install using uvx to avoid the need for a virtual environment.
-
 Edit `mcp_config.json` to add the server:
 
 ```
@@ -55,12 +54,10 @@ Edit `mcp_config.json` to add the server:
 }
 ```
 
-## Developer
+## Contributing
 
-To clone the repo and run unit tests:
+To run unit tests:
 
 ```
-git clone https://github.com/chrisflesher/wireviz-mcp.git
-cd wireviz-mcp
 tox
 ```
