@@ -1,12 +1,20 @@
 # WireViz MCP Server
 
-A Model Context Protocol (MCP) server that integrates [WireViz](https://github.com/formatc1702/WireViz). This allows AI assistants to design and visualize physical wiring harnesses.
+A Model Context Protocol (MCP) server that wraps [WireViz](https://github.com/formatc1702/WireViz). This allows AI assistants to design and visualize physical wiring harnesses.
 
-## Features
+Typical workflow:
 
-The server exposes the following tools:
+1. Create a "harness concept" to specify rough connectivity between components
+2. Create a "harness" to specify detailed connectivity between components
+3. Generate output files (WireViz YAML, BOM, PNG)
 
-- **`concept_to_mermaid`**: Translates a simplified design (`ConceptGraph`) into a Mermaid diagram to help plan the harness design.
+## Examples
+
+Refer to the `examples/` directory.
+
+## Tools
+
+- **`concept_to_mermaid`**: Translates a rough design (`HarnessConcept`) into a Mermaid diagram to help plan the detailed design.
 - **`mermaid_to_svg`**: Renders Mermaid diagram as SVG.
 - **`harness_to_wireviz`**: Translates a complete harness design (`Harness`) into WireViz YAML.
 - **`wireviz_to_bom`**: Generates a Bill of Materials (BOM) in TSV format from WireViz YAML.

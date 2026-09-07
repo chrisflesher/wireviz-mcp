@@ -86,6 +86,7 @@ class Connector(BaseModel):
 
     @model_validator(mode='after')
     def check_pin_names(self):
+        """Ensure pin names are unique."""
         if len(set(self.pin_names)) != len(self.pin_names):
             raise ValueError('pin_names must be unique')
         return self
@@ -123,14 +124,6 @@ class CableInstance(BaseModel):
     wire_labels: typing.Dict[int, str] = Field(description='Map of wire index -> label')
 
 
-class HarnessConcept(BaseModel):
-    """Wiring harness concept."""
-    connectors: typing.Dict[str, ConnectorInstance] = Field(description='List of connectors')
-    cables: typing.Dict[str, CableInstance] = Field(description='List of cables')
-    connections: typing.List[typing.Dict[str, typing.List[int]]] = Field(
-        description='List of connections between connectors and cables. Values must be >= 0 and < pin_count / wirecount.')
-
-
 class Harness(BaseModel):
     """Wiring harness."""
 
@@ -142,22 +135,27 @@ class Harness(BaseModel):
 
     @model_validator(mode='after')
     def check_connectors(self):
+        """Ensure connector instances are valid."""
         for name, connector in self.connectors.items():
             connector_def = self.connector_defs[connector.index]
             for pin_index in connector.pin_labels.keys():
-                connector_def.pin_names[pin_index]  # noqa: F841
+                if not (0 <= pin_index < len(connector_def.pin_names)):
+                    raise ValueError(f'connectors[{name}]: invalid pin index {pin_index}')
         return self
 
     @model_validator(mode='after')
     def check_cables(self):
+        """Ensure cable instances are valid."""
         for name, cable in self.cables.items():
             cable_def = self.cable_defs[cable.index]
             for wire_index in cable.wire_labels.keys():
-                cable_def.wires[wire_index]  # noqa: F841
+                if not (0 <= wire_index < len(cable_def.wires)):
+                    raise ValueError(f'cables[{name}]: invalid wire index {wire_index}')
         return self
 
     @model_validator(mode='after')
     def check_connections(self):
+        """Ensure connection instances are valid."""
         for index, connection in enumerate(self.connections):
             for name, items in connection.items():
                 if name in self.connectors:
@@ -177,21 +175,22 @@ class Harness(BaseModel):
         return self
 
 
-class ConceptNode(BaseModel):
-    """Node in ConceptGraph."""
+class HarnessConceptNode(BaseModel):
+    """Node in HarnessConcept graph."""
 
     component_name: str = Field(min_length=1, description='Component name')
     connector_name: str = Field(min_length=1, description='Connector name  (e.g. J1, J2, etc.) attached to the component')
 
 
-class ConceptGraph(BaseModel):
-    """Connectors the wire harness will join together."""
+class HarnessConcept(BaseModel):
+    """Graph of connectors the wire harness will join together."""
 
-    nodes: typing.List[ConceptNode] = Field(description='Harness connectors')
+    nodes: typing.List[HarnessConceptNode] = Field(description='Harness connectors')
     edges: typing.List[typing.Tuple[int, int]] = Field(description='Harness connections, pairs of node indices')
 
     @model_validator(mode='after')
     def check_graph(self):
+        """Ensure graph is valid."""
         for source_index, target_index in self.edges:
             if not (0 <= source_index < len(self.nodes)):
                 raise IndexError('source_index out of range')
@@ -200,7 +199,7 @@ class ConceptGraph(BaseModel):
         return self
 
 
-def concept_to_mermaid(concept: ConceptGraph) -> str:
+def concept_to_mermaid(concept: HarnessConcept) -> str:
     """Create a Mermaid diagram from a concept graph."""
     mermaid_lines = ['graph TD']
     components = {}

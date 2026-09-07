@@ -1,7 +1,7 @@
 [project]
 name = "wireviz-mcp"
-version = "1.0.0"
-description = "A WireViz MCP server"
+version = "1.0.1"
+description = "A wrapper around WireViz for bringing it to AI agents. Easily document cables and wiring harnesses"
 authors = [
     {name = "Chris Flesher", email = "chris.flesher@gmail.com"},
 ]
