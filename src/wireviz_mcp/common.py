@@ -175,17 +175,17 @@ class Harness(BaseModel):
         return self
 
 
-class ConceptNode(BaseModel):
-    """Node in ConceptGraph."""
+class HarnessConceptNode(BaseModel):
+    """Node in HarnessConcept graph."""
 
     component_name: str = Field(min_length=1, description='Component name')
     connector_name: str = Field(min_length=1, description='Connector name  (e.g. J1, J2, etc.) attached to the component')
 
 
-class ConceptGraph(BaseModel):
-    """Connectors the wire harness will join together."""
+class HarnessConcept(BaseModel):
+    """Graph of connectors the wire harness will join together."""
 
-    nodes: typing.List[ConceptNode] = Field(description='Harness connectors')
+    nodes: typing.List[HarnessConceptNode] = Field(description='Harness connectors')
     edges: typing.List[typing.Tuple[int, int]] = Field(description='Harness connections, pairs of node indices')
 
     @model_validator(mode='after')
@@ -199,7 +199,7 @@ class ConceptGraph(BaseModel):
         return self
 
 
-def concept_to_mermaid(concept: ConceptGraph) -> str:
+def concept_to_mermaid(concept: HarnessConcept) -> str:
     """Create a Mermaid diagram from a concept graph."""
     mermaid_lines = ['graph TD']
     components = {}

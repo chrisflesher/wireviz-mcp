@@ -4,8 +4,8 @@ A Model Context Protocol (MCP) server that wraps [WireViz](https://github.com/fo
 
 Typical workflow:
 
-1. Create a "concept graph" to specify rough connectivity between different boards / components
-2. Create a "harness" to specify connection details (e.g. pinouts, wire colors, AWG, lengths, etc.)
+1. Create a "harness concept" to specify rough connectivity between components
+2. Create a "harness" to specify detailed connectivity between components
 3. Generate output files (WireViz YAML, BOM, PNG)
 
 ## Examples
@@ -14,9 +14,7 @@ Refer to the `examples/` directory.
 
 ## Tools
 
-The server exposes the following tools:
-
-- **`concept_to_mermaid`**: Translates a simplified design (`ConceptGraph`) into a Mermaid diagram to help plan the harness design.
+- **`concept_to_mermaid`**: Translates a rough design (`HarnessConcept`) into a Mermaid diagram to help plan the detailed design.
 - **`mermaid_to_svg`**: Renders Mermaid diagram as SVG.
 - **`harness_to_wireviz`**: Translates a complete harness design (`Harness`) into WireViz YAML.
 - **`wireviz_to_bom`**: Generates a Bill of Materials (BOM) in TSV format from WireViz YAML.
