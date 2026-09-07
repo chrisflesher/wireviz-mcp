@@ -72,26 +72,37 @@ connections:
 """
 
 
+def test_connector_duplicate_pin_names():
+    """Test that creating a connector with duplicate pin names raises a ValueError."""
+    with pytest.raises(ValueError, match='pin_names must be unique'):
+        wireviz_mcp.common.Connector(
+            type='D-Sub',
+            gender=wireviz_mcp.common.Gender.FEMALE,
+            color=wireviz_mcp.common.Color.BLACK,
+            pin_names=['1', '1', '2'],
+        )
+
+
 def test_harness_validation_valid(harness):
     """Test that a valid harness object can be created."""
     assert harness is not None
 
 
 def test_harness_validation_invalid_pin_index(harness):
-    """Test that creating a harness with an invalid pin index raises an IndexError."""
+    """Test that creating a harness with an invalid pin index raises a ValueError."""
     harness_data = harness.model_dump()
     harness_data['connectors']['X1']['pin_labels'][99] = 'extra'
 
-    with pytest.raises(IndexError):
+    with pytest.raises(ValueError, match='invalid pin index'):
         wireviz_mcp.common.Harness(**harness_data)
 
 
 def test_harness_validation_invalid_wire_index(harness):
-    """Test that creating a harness with an invalid wire index raises an IndexError."""
+    """Test that creating a harness with an invalid wire index raises a ValueError."""
     harness_data = harness.model_dump()
     harness_data['cables']['W1']['wire_labels'][99] = 'w4'
 
-    with pytest.raises(IndexError):
+    with pytest.raises(ValueError, match='invalid wire index'):
         wireviz_mcp.common.Harness(**harness_data)
 
 
