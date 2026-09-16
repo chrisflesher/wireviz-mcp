@@ -67,6 +67,10 @@ class Color(enum.Enum):
     BLUE_BLACK = 'BUBK'
     RED_BLACK = 'RDBK'
 
+    # Other non-standard colors
+    ORANGE = 'OG'
+    WHITE_ORANGE = 'WHOG'
+
 
 class Gender(enum.Enum):
     """Connector gender."""
