@@ -157,11 +157,11 @@ def test_wireviz_to_png(wireviz_yaml):
 
 def test_concept_to_mermaid():
     """Test concept_to_mermaid."""
-    concept = wireviz_mcp.common.ConceptGraph(
+    concept = wireviz_mcp.common.HarnessConcept(
         nodes=[
-            wireviz_mcp.common.ConceptNode(component_name='ComponentA', connector_name='J1'),
-            wireviz_mcp.common.ConceptNode(component_name='ComponentB', connector_name='J2'),
-            wireviz_mcp.common.ConceptNode(component_name='ComponentA', connector_name='J3'),
+            wireviz_mcp.common.HarnessConceptNode(component_name='ComponentA', connector_name='J1'),
+            wireviz_mcp.common.HarnessConceptNode(component_name='ComponentB', connector_name='J2'),
+            wireviz_mcp.common.HarnessConceptNode(component_name='ComponentA', connector_name='J3'),
         ],
         edges=[(0, 1), (2, 1)],
     )
