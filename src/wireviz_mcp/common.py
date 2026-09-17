@@ -264,7 +264,11 @@ def concept_to_mermaid(concept: HarnessConcept) -> str:
     return '\n'.join(mermaid_lines)
 
 
-def harness_to_wireviz(harness: Harness) -> str:
+def harness_to_wireviz(
+    harness: Harness,
+    gauge_unit: GaugeUnit = GaugeUnit.AWG,
+    length_unit: LengthUnit = LengthUnit.METER,
+) -> str:
     """Create WireViz YAML from a harness definition."""
     wireviz_dict = harness.model_dump(mode='json')
     for item in wireviz_dict['connector_defs']:
@@ -273,7 +277,7 @@ def harness_to_wireviz(harness: Harness) -> str:
     for item in wireviz_dict['cable_defs']:
         wires = item.pop('wires')
         item['colors'] = [wire['color'] for wire in wires]
-        item['gauge'] = sorted([wire['gauge'] for wire in wires])[len(wires) // 2]
+        item['gauge'] = sorted([_gauge_str(wire['gauge']) for wire in wires])[len(wires) // 2]
         if item.pop('bundled'):
             item['category'] = 'bundled'
     for name, connector in wireviz_dict['connectors'].items():
@@ -293,6 +297,7 @@ def harness_to_wireviz(harness: Harness) -> str:
         for index, label in wire_labels.items():
             wirelabels[int(index)] = label
         cable['wirelabels'] = wirelabels
+        cable['length'] = _length_str(cable.pop['length'], length_unit)
         cable['<<'] = cable_def
     connections_list = wireviz_dict['connections']
     for index, connection in enumerate(connections_list):
@@ -332,7 +337,7 @@ def wireviz_to_png(wireviz_yaml: str) -> bytes:
 
 
 def _gauge_str(gauge: Gauge, unit: GaugeUnit) -> str:
-    """Convert a length in meters to a text string."""
+    """Convert a gauge to a text string."""
     if unit == GaugeUnit.AWG:
         gauge_str = f'{gauge.value[0]}'
     elif unit == GaugeUnit.MM2:

@@ -25,9 +25,9 @@ def harness():
                 shield=False,
                 color=wireviz_mcp.common.Color.GREY,
                 wires=[
-                    wireviz_mcp.common.Wire(color=wireviz_mcp.common.Color.BROWN, gauge=0.5),
-                    wireviz_mcp.common.Wire(color=wireviz_mcp.common.Color.BLUE, gauge=0.5),
-                    wireviz_mcp.common.Wire(color=wireviz_mcp.common.Color.GREEN, gauge=0.75),
+                    wireviz_mcp.common.Wire(color=wireviz_mcp.common.Color.BROWN, gauge=wireviz_mcp.common.Gauge.AWG_20),
+                    wireviz_mcp.common.Wire(color=wireviz_mcp.common.Color.BLUE, gauge=wireviz_mcp.common.Gauge.AWG_20),
+                    wireviz_mcp.common.Wire(color=wireviz_mcp.common.Color.GREEN, gauge=wireviz_mcp.common.Gauge.AWG_18),
                 ],
             )
         ],
@@ -135,8 +135,8 @@ def test_harness_to_wireviz(harness):
     # check cable fields
     assert data['cable_defs'][0]['category'] == 'bundled'
     assert data['cable_defs'][0]['colors'] == ['BN', 'BU', 'GN']
-    assert data['cable_defs'][0]['gauge'] == 0.5  # Median of [0.5, 0.5, 0.75]
-    assert data['cables']['W1']['length'] == 1.0
+    assert data['cable_defs'][0]['gauge'] == '20 AWG'
+    assert data['cables']['W1']['length'] == '1 m'
     assert len(data['cables']['W1']['wirelabels']) == 3
     assert data['cable_defs'][0]['shield'] is False
     assert data['connections'] == [[{'X1': [3]}, {'W1': [2]}], [{'X1': [4]}, {'W1': [3]}], [{'X1': [6]}, {'W1': [1]}]]
@@ -178,3 +178,16 @@ def test_concept_to_mermaid():
     node_2 --- node_1
 '''
     assert mermaid_str.strip() == expected_str.strip()
+
+
+def test_harness_to_wireviz_custom_units(harness):
+    """Test the conversion of a harness to WireViz YAML string with custom units."""
+    yaml_str = wireviz_mcp.common.harness_to_wireviz(
+        harness,
+        gauge_unit=wireviz_mcp.common.GaugeUnit.MM2,
+        length_unit=wireviz_mcp.common.LengthUnit.CENTIMETER,
+    )
+    data = yaml.safe_load(yaml_str)
+    assert data['cable_defs'][0]['gauge'] == '0.5 mm2'
+    assert data['cables']['W1']['length'] == '100 cm'
+
