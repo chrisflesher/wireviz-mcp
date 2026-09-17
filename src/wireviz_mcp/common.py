@@ -277,7 +277,7 @@ def harness_to_wireviz(
     for item in wireviz_dict['cable_defs']:
         wires = item.pop('wires')
         item['colors'] = [wire['color'] for wire in wires]
-        item['gauge'] = sorted([_gauge_str(wire['gauge']) for wire in wires])[len(wires) // 2]
+        item['gauge'] = sorted([_gauge_str(wire.pop('gauge'), gauge_unit) for wire in wires])[len(wires) // 2]
         if item.pop('bundled'):
             item['category'] = 'bundled'
     for name, connector in wireviz_dict['connectors'].items():
