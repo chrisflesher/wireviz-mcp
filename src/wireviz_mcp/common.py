@@ -277,7 +277,7 @@ def harness_to_wireviz(
     for item in wireviz_dict['cable_defs']:
         wires = item.pop('wires')
         item['colors'] = [wire['color'] for wire in wires]
-        item['gauge'] = sorted([_gauge_str(wire.pop('gauge'), gauge_unit) for wire in wires])[len(wires) // 2]
+        item['gauge'] = sorted([_gauge_str(Gauge(tuple(wire.pop('gauge'))), gauge_unit) for wire in wires])[len(wires) // 2]
         if item.pop('bundled'):
             item['category'] = 'bundled'
     for name, connector in wireviz_dict['connectors'].items():
@@ -297,7 +297,7 @@ def harness_to_wireviz(
         for index, label in wire_labels.items():
             wirelabels[int(index)] = label
         cable['wirelabels'] = wirelabels
-        cable['length'] = _length_str(cable.pop['length'], length_unit)
+        cable['length'] = _length_str(cable.pop('length'), length_unit)
         cable['<<'] = cable_def
     connections_list = wireviz_dict['connections']
     for index, connection in enumerate(connections_list):
@@ -356,7 +356,7 @@ def _length_str(length: float, unit: LengthUnit) -> str:
     elif unit == LengthUnit.INCH:
         length_str = f'{round(length * 39.3701):d}'
     elif unit == LengthUnit.METER:
-        length_str = f'{length:.2f}'
+        length_str = f'{length:g}'
     elif unit == LengthUnit.MILLIMETER:
         length_str = f'{round(length * 1000):d}'
     else:
