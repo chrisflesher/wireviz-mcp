@@ -72,12 +72,55 @@ class Color(enum.Enum):
     WHITE_ORANGE = 'WHOG'
 
 
+class Gauge(enum.Enum):
+    """Standard AWG sizes and their cross-sectional area in mm^2."""
+
+    AWG_4_0 = ('4/0', 120.0)
+    AWG_3_0 = ('3/0', 95.0)
+    AWG_2_0 = ('2/0', 70.0)
+    AWG_1_0 = ('1/0', 55.0)
+    AWG_1 = ('1', 50.0)
+    AWG_2 = ('2', 35.0)
+    AWG_4 = ('4', 25.0)
+    AWG_6 = ('6', 16.0)
+    AWG_8 = ('8', 10.0)
+    AWG_10 = ('10', 6.0)
+    AWG_12 = ('12', 4.0)
+    AWG_14 = ('14', 2.5)
+    AWG_16 = ('16', 1.5)
+    AWG_18 = ('18', 0.75)
+    AWG_20 = ('20', 0.50)
+    AWG_21 = ('21', 0.38)
+    AWG_22 = ('22', 0.34)
+    AWG_24 = ('24', 0.25)
+    AWG_26 = ('26', 0.14)
+    AWG_28 = ('28', 0.08)
+    AWG_30 = ('30', 0.05)
+
+
+class GaugeUnit(enum.Enum):
+    """Length unit of measurement."""
+
+    AWG = 'AWG'
+    MM2 = 'mm2'
+
+
 class Gender(enum.Enum):
     """Connector gender."""
 
     MALE = 'male'
     FEMALE = 'female'
     NONE = ''
+
+
+class LengthUnit(enum.Enum):
+    """Length unit of measurement."""
+
+    CENTIMETER = 'cm'
+    FOOT = 'ft'
+    INCH = 'in'
+    METER = 'm'
+    MILLIMETER = 'mm'
 
 
 class Connector(BaseModel):
@@ -107,7 +150,7 @@ class Wire(BaseModel):
     """An individual wire within a cable."""
 
     color: Color = Field(description='The wire insulation color')
-    gauge: float = Field(description='The wire gauge in mm^2')
+    gauge: Gauge = Field(description='The wire gauge')
 
 
 class Cable(BaseModel):
@@ -255,7 +298,7 @@ def harness_to_wireviz(harness: Harness) -> str:
     for index, connection in enumerate(connections_list):
         connections_list[index] = _resolve_connection_target(connection, harness)
     wireviz_yaml = yaml.safe_dump(wireviz_dict, sort_keys=False)
-    return wireviz_yaml.replace("'<<': ", "<<: ")  # HACK: should use a custom YAML dumper...
+    return wireviz_yaml.replace('"<<": ', '<<: ')  # HACK: should use a custom YAML dumper...
 
 
 def wireviz_to_bom(wireviz_yaml: str) -> str:
@@ -268,7 +311,7 @@ def wireviz_to_bom(wireviz_yaml: str) -> str:
         command = f'{wireviz_bin} -f t --output-dir {in_path.parent} {in_path}'
         res = subprocess.run(shlex.split(command), capture_output=True, text=True)
         if res.returncode != 0:
-            raise RuntimeError(f"WireViz CLI error:\nSTDOUT:\n{res.stdout}\nSTDERR:\n{res.stderr}")
+            raise RuntimeError(f'WireViz CLI error:\nSTDOUT:\n{res.stdout}\nSTDERR:\n{res.stderr}')
         out_path = temp_dir / 'harness.bom.tsv'
         return out_path.read_text()
 
@@ -283,9 +326,37 @@ def wireviz_to_png(wireviz_yaml: str) -> bytes:
         command = f'{wireviz_bin} -f p --output-dir {in_path.parent} {in_path}'
         res = subprocess.run(shlex.split(command), capture_output=True, text=True)
         if res.returncode != 0:
-            raise RuntimeError(f"WireViz CLI error:\nSTDOUT:\n{res.stdout}\nSTDERR:\n{res.stderr}")
+            raise RuntimeError(f'WireViz CLI error:\nSTDOUT:\n{res.stdout}\nSTDERR:\n{res.stderr}')
         out_path = temp_dir / 'harness.png'
         return out_path.read_bytes()
+
+
+def _gauge_str(gauge: Gauge, unit: GaugeUnit) -> str:
+    """Convert a length in meters to a text string."""
+    if unit == GaugeUnit.AWG:
+        gauge_str = f'{gauge.value[0]}'
+    elif unit == GaugeUnit.MM2:
+        gauge_str = f'{gauge.value[1]}'
+    else:
+        raise ValueError(f'Unknown unit: {unit}')
+    return f'{gauge_str} {unit.value}'
+
+
+def _length_str(length: float, unit: LengthUnit) -> str:
+    """Convert a length in meters to a text string."""
+    if unit == LengthUnit.CENTIMETER:
+        length_str = f'{round(length * 100):d}'
+    elif unit == LengthUnit.FOOT:
+        length_str = f'{round(length * 3.28084):d}'
+    elif unit == LengthUnit.INCH:
+        length_str = f'{round(length * 39.3701):d}'
+    elif unit == LengthUnit.METER:
+        length_str = f'{length:.2f}'
+    elif unit == LengthUnit.MILLIMETER:
+        length_str = f'{round(length * 1000):d}'
+    else:
+        raise ValueError(f'Unknown unit: {unit}')
+    return f'{length_str} {unit.value}'
 
 
 def _get_wireviz_cmd() -> str:
