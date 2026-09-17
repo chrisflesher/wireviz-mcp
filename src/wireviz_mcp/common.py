@@ -67,6 +67,10 @@ class Color(enum.Enum):
     BLUE_BLACK = 'BUBK'
     RED_BLACK = 'RDBK'
 
+    # Other non-standard colors
+    ORANGE = 'OG'
+    WHITE_ORANGE = 'WHOG'
+
 
 class Gender(enum.Enum):
     """Connector gender."""
@@ -249,10 +253,7 @@ def harness_to_wireviz(harness: Harness) -> str:
         cable['<<'] = cable_def
     connections_list = wireviz_dict['connections']
     for index, connection in enumerate(connections_list):
-        new_connection = []
-        for key, value in connection.items():
-            new_connection.append(_resolve_connection_target(key, value, harness))
-        connections_list[index] = new_connection
+        connections_list[index] = _resolve_connection_target(connection, harness)
     wireviz_yaml = yaml.safe_dump(wireviz_dict, sort_keys=False)
     return wireviz_yaml.replace("'<<': ", "<<: ")  # HACK: should use a custom YAML dumper...
 
@@ -265,7 +266,9 @@ def wireviz_to_bom(wireviz_yaml: str) -> str:
         in_path.write_text(wireviz_yaml)
         wireviz_bin = _get_wireviz_cmd()
         command = f'{wireviz_bin} -f t --output-dir {in_path.parent} {in_path}'
-        subprocess.run(shlex.split(command), check=True, capture_output=True)
+        res = subprocess.run(shlex.split(command), capture_output=True, text=True)
+        if res.returncode != 0:
+            raise RuntimeError(f"WireViz CLI error:\nSTDOUT:\n{res.stdout}\nSTDERR:\n{res.stderr}")
         out_path = temp_dir / 'harness.bom.tsv'
         return out_path.read_text()
 
@@ -278,7 +281,9 @@ def wireviz_to_png(wireviz_yaml: str) -> bytes:
         in_path.write_text(wireviz_yaml)
         wireviz_bin = _get_wireviz_cmd()
         command = f'{wireviz_bin} -f p --output-dir {in_path.parent} {in_path}'
-        subprocess.run(shlex.split(command), check=True, capture_output=True)
+        res = subprocess.run(shlex.split(command), capture_output=True, text=True)
+        if res.returncode != 0:
+            raise RuntimeError(f"WireViz CLI error:\nSTDOUT:\n{res.stdout}\nSTDERR:\n{res.stderr}")
         out_path = temp_dir / 'harness.png'
         return out_path.read_bytes()
 
@@ -297,10 +302,28 @@ def _get_wireviz_cmd() -> str:
     return 'wireviz'
 
 
-def _resolve_connection_target(key: str, indices: typing.List[int], harness: Harness) -> typing.Dict[str, typing.List[typing.Union[str, int]]]:
-    if key in harness.connectors:
-        pins = harness.connector_defs[harness.connectors[key].index].pin_names
-        return {key: [int(pins[i]) if isinstance(pins[i], str) and pins[i].isdigit() else pins[i] for i in indices]}
-    if key in harness.cables:
-        return {key: [i + 1 for i in indices]}
-    return {key: indices}
+def _resolve_connection_target(connection: typing.Dict[str, typing.List[int]], harness: Harness) -> typing.List[typing.Dict[str, typing.List[typing.Union[str, int]]]]:
+    conn_keys = list(connection.keys())
+    cables_keys = [k for k in conn_keys if k in harness.cables]
+    connectors_keys = [k for k in conn_keys if k in harness.connectors]
+    other_keys = [k for k in conn_keys if k not in harness.cables and k not in harness.connectors]
+    ordered_keys = []
+    if connectors_keys and cables_keys:
+        ordered_keys.append(connectors_keys[0])
+        ordered_keys.extend(cables_keys)
+        ordered_keys.extend(connectors_keys[1:])
+        ordered_keys.extend(other_keys)
+    else:
+        ordered_keys = conn_keys
+    result = []
+    for key in ordered_keys:
+        indices = connection[key]
+        if key in harness.connectors:
+            pins = harness.connector_defs[harness.connectors[key].index].pin_names
+            resolved = [int(pins[i]) if isinstance(pins[i], str) and pins[i].isdigit() else pins[i] for i in indices]
+            result.append({key: resolved})
+        elif key in harness.cables:
+            result.append({key: [i + 1 for i in indices]})
+        else:
+            result.append({key: indices})
+    return result
