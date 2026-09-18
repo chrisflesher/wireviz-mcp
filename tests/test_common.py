@@ -116,42 +116,34 @@ def test_harness_validation_out_of_range_connection_index(harness):
 
 
 def test_harness_to_wireviz(harness):
-    """Test the conversion of a harness to a WireViz YAML string."""
-    yaml_str = wireviz_mcp.common.harness_to_wireviz(harness)
-    data = yaml.safe_load(yaml_str)
+    """Test the conversion of a harness to WireViz JSON dictionary."""
+    data = wireviz_mcp.common.harness_to_wireviz(harness)
 
-    assert 'connector_defs' in data
-    assert 'cable_defs' in data
     assert 'connectors' in data
     assert 'cables' in data
     assert 'connections' in data
+    assert 'metadata' in data
 
     # check connector fields
-    assert data['connector_defs'][0]['subtype'] == 'female'
-    assert data['connector_defs'][0]['color'] == 'BK'
-    assert data['connector_defs'][0]['pins'] == [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    assert data['connectors']['X1']['subtype'] == 'female'
+    assert data['connectors']['X1']['color'] == 'BK'
+    assert data['connectors']['X1']['pins'] == [1, 2, 3, 4, 5, 6, 7, 8, 9]
     assert len(data['connectors']['X1']['pinlabels']) == 9
 
     # check cable fields
-    assert data['cable_defs'][0]['category'] == 'bundled'
-    assert data['cable_defs'][0]['colors'] == ['BN', 'BU', 'GN']
-    assert data['cable_defs'][0]['gauge'] == '20 AWG'
+    assert data['cables']['W1']['category'] == 'bundled'
+    assert data['cables']['W1']['colors'] == ['BN', 'BU', 'GN']
+    assert data['cables']['W1']['gauge'] == '20 AWG'
     assert data['cables']['W1']['length'] == '1 m'
     assert len(data['cables']['W1']['wirelabels']) == 3
-    assert data['cable_defs'][0]['shield'] is False
+    assert data['cables']['W1']['shield'] is False
     assert data['connections'] == [[{'X1': [3]}, {'W1': [2]}], [{'X1': [4]}, {'W1': [3]}], [{'X1': [6]}, {'W1': [1]}]]
 
 
-def test_wireviz_to_bom(wireviz_yaml):
-    """Test that wireviz_to_bom calls subprocess.run with the correct command."""
-    result = wireviz_mcp.common.wireviz_to_bom(wireviz_yaml)
-    assert isinstance(result, str)
-
-
-def test_wireviz_to_png(wireviz_yaml):
-    """Test that wireviz_to_png calls subprocess.run with the correct command."""
-    # Mock subprocess.run
-    result = wireviz_mcp.common.wireviz_to_png(wireviz_yaml)
+def test_wireviz_to_pdf(harness):
+    """Test that wireviz_to_pdf compiles wireviz definition without error."""
+    json_dict = wireviz_mcp.common.harness_to_wireviz(harness)
+    result = wireviz_mcp.common.wireviz_to_pdf(json_dict)
     assert isinstance(result, bytes)
 
 
@@ -181,13 +173,13 @@ def test_concept_to_mermaid():
 
 
 def test_harness_to_wireviz_custom_units(harness):
-    """Test the conversion of a harness to WireViz YAML string with custom units."""
-    yaml_str = wireviz_mcp.common.harness_to_wireviz(
+    """Test the conversion of a harness to WireViz dict with custom units."""
+    data = wireviz_mcp.common.harness_to_wireviz(
         harness,
         gauge_unit=wireviz_mcp.common.GaugeUnit.MM2,
         length_unit=wireviz_mcp.common.LengthUnit.CENTIMETER,
     )
-    data = yaml.safe_load(yaml_str)
-    assert data['cable_defs'][0]['gauge'] == '0.5 mm2'
+    assert data['cables']['W1']['gauge'] == '0.5 mm2'
     assert data['cables']['W1']['length'] == '100 cm'
+
 

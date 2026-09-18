@@ -17,7 +17,7 @@ import wireviz_mcp.common
 mcp = fastmcp.FastMCP('WireViz MCP Server')
 mcp.add_tool(wireviz_mcp.common.concept_to_mermaid)
 mcp.add_tool(wireviz_mcp.common.harness_to_wireviz)
-mcp.add_tool(wireviz_mcp.common.wireviz_to_bom)
+mcp.add_tool(wireviz_mcp.common.wireviz_to_html)
 
 
 @mcp.tool()
