@@ -11,11 +11,10 @@ import sys
 import tempfile
 import typing
 
-import yaml
 from pydantic import BaseModel, Field, model_validator
 
 
-class Color(enum.Enum):
+class Color(str, enum.Enum):
     """Color.
 
     These are DIN 47100 standard German abbreviations.
@@ -101,24 +100,41 @@ class Gauge(str, enum.Enum):
 
     @property
     def mm2(self) -> float:
+        """Return nearest gauge in mm2."""
         areas = {
-            '4/0': 120.0, '3/0': 95.0, '2/0': 70.0, '1/0': 55.0,
-            '1': 50.0, '2': 35.0, '4': 25.0, '6': 16.0, '8': 10.0,
-            '10': 6.0, '12': 4.0, '14': 2.5, '16': 1.5, '18': 0.75,
-            '20': 0.50, '21': 0.38, '22': 0.34, '24': 0.25, '26': 0.14,
-            '28': 0.08, '30': 0.05
+            '4/0': 120.0,
+            '3/0': 95.0,
+            '2/0': 70.0,
+            '1/0': 55.0,
+            '1': 50.0,
+            '2': 35.0,
+            '4': 25.0,
+            '6': 16.0,
+            '8': 10.0,
+            '10': 6.0,
+            '12': 4.0,
+            '14': 2.5,
+            '16': 1.5,
+            '18': 0.75,
+            '20': 0.50,
+            '21': 0.38,
+            '22': 0.34,
+            '24': 0.25,
+            '26': 0.14,
+            '28': 0.08,
+            '30': 0.05,
         }
         return areas[self.value]
 
 
-class GaugeUnit(enum.Enum):
+class GaugeUnit(str, enum.Enum):
     """Length unit of measurement."""
 
     AWG = 'AWG'
     MM2 = 'mm2'
 
 
-class Gender(enum.Enum):
+class Gender(str, enum.Enum):
     """Connector gender."""
 
     MALE = 'male'
@@ -126,7 +142,7 @@ class Gender(enum.Enum):
     NONE = ''
 
 
-class LengthUnit(enum.Enum):
+class LengthUnit(str, enum.Enum):
     """Length unit of measurement."""
 
     CENTIMETER = 'cm'
@@ -366,7 +382,7 @@ def _build_wireviz_cable(
     gauge_unit: GaugeUnit,
     length_unit: LengthUnit,
 ) -> typing.Mapping[str, typing.Any]:
-    colors = [w.color.value for w in cdef.wires]
+    colors = [w.color for w in cdef.wires]
     gauges = sorted([_build_wireviz_gauge_str(w.gauge, gauge_unit) for w in cdef.wires])
     median_gauge = gauges[len(gauges) // 2]
     wirelabels = [''] * len(colors)
@@ -374,7 +390,7 @@ def _build_wireviz_cable(
         wirelabels[idx] = label
     cable_dict: typing.Dict[str, typing.Any] = {
         'type': cdef.type,
-        'color': cdef.color.value,
+        'color': cdef.color,
         'colors': colors,
         'gauge': median_gauge,
         'shield': cdef.shield,
@@ -394,8 +410,8 @@ def _build_wireviz_connector(instance: ConnectorInstance, cdef: Connector) -> ty
         pinlabels[idx] = label
     return {
         'type': cdef.type,
-        'subtype': cdef.subtype.value,
-        'color': cdef.color.value,
+        'subtype': cdef.subtype,
+        'color': cdef.color,
         'pins': pins,
         'pinlabels': pinlabels,
     }
