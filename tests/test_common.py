@@ -140,11 +140,12 @@ def test_harness_to_wireviz(harness):
     assert data['connections'] == [[{'X1': [3]}, {'W1': [2]}], [{'X1': [4]}, {'W1': [3]}], [{'X1': [6]}, {'W1': [1]}]]
 
 
-def test_wireviz_to_pdf(harness):
-    """Test that wireviz_to_pdf compiles wireviz definition without error."""
+def test_wireviz_to_html(harness):
+    """Test that wireviz_to_html compiles wireviz definition without error."""
     json_dict = wireviz_mcp.common.harness_to_wireviz(harness)
-    result = wireviz_mcp.common.wireviz_to_pdf(json_dict)
-    assert isinstance(result, bytes)
+    result = wireviz_mcp.common.wireviz_to_html(json_dict)
+    assert isinstance(result, str)
+    assert '<html>' in result.lower() or '<!doctype html>' in result.lower()
 
 
 def test_concept_to_mermaid():

@@ -74,30 +74,41 @@ class Color(enum.Enum):
     WHITE_ORANGE = 'WHOG'
 
 
-class Gauge(enum.Enum):
-    """Standard AWG sizes and their cross-sectional area in mm^2."""
+class Gauge(str, enum.Enum):
+    """Standard AWG sizes."""
 
-    AWG_4_0 = ('4/0', 120.0)
-    AWG_3_0 = ('3/0', 95.0)
-    AWG_2_0 = ('2/0', 70.0)
-    AWG_1_0 = ('1/0', 55.0)
-    AWG_1 = ('1', 50.0)
-    AWG_2 = ('2', 35.0)
-    AWG_4 = ('4', 25.0)
-    AWG_6 = ('6', 16.0)
-    AWG_8 = ('8', 10.0)
-    AWG_10 = ('10', 6.0)
-    AWG_12 = ('12', 4.0)
-    AWG_14 = ('14', 2.5)
-    AWG_16 = ('16', 1.5)
-    AWG_18 = ('18', 0.75)
-    AWG_20 = ('20', 0.50)
-    AWG_21 = ('21', 0.38)
-    AWG_22 = ('22', 0.34)
-    AWG_24 = ('24', 0.25)
-    AWG_26 = ('26', 0.14)
-    AWG_28 = ('28', 0.08)
-    AWG_30 = ('30', 0.05)
+    AWG_4_0 = '4/0'
+    AWG_3_0 = '3/0'
+    AWG_2_0 = '2/0'
+    AWG_1_0 = '1/0'
+    AWG_1 = '1'
+    AWG_2 = '2'
+    AWG_4 = '4'
+    AWG_6 = '6'
+    AWG_8 = '8'
+    AWG_10 = '10'
+    AWG_12 = '12'
+    AWG_14 = '14'
+    AWG_16 = '16'
+    AWG_18 = '18'
+    AWG_20 = '20'
+    AWG_21 = '21'
+    AWG_22 = '22'
+    AWG_24 = '24'
+    AWG_26 = '26'
+    AWG_28 = '28'
+    AWG_30 = '30'
+
+    @property
+    def mm2(self) -> float:
+        areas = {
+            '4/0': 120.0, '3/0': 95.0, '2/0': 70.0, '1/0': 55.0,
+            '1': 50.0, '2': 35.0, '4': 25.0, '6': 16.0, '8': 10.0,
+            '10': 6.0, '12': 4.0, '14': 2.5, '16': 1.5, '18': 0.75,
+            '20': 0.50, '21': 0.38, '22': 0.34, '24': 0.25, '26': 0.14,
+            '28': 0.08, '30': 0.05
+        }
+        return areas[self.value]
 
 
 class GaugeUnit(enum.Enum):
@@ -180,6 +191,21 @@ class AuthorEntry(BaseModel):
     date: datetime.date = Field(description='Author date (YYYY-MM-DD)')
 
 
+class RevisionEntry(BaseModel):
+    """Revision metadata entry."""
+
+    name: str = Field(description='Author name')
+    date: datetime.date = Field(description='Revision date (YYYY-MM-DD)')
+    changelog: str = Field(description='Revision changelog summary')
+
+
+class TemplateConfig(BaseModel):
+    """Template options."""
+
+    name: str = Field(default='din-6771', description='WireViz template name')
+    sheetsize: str = Field(default='A3', description='Page sheet size (e.g. A4, A3)')
+
+
 class Metadata(BaseModel):
     """Harness document metadata."""
 
@@ -189,21 +215,6 @@ class Metadata(BaseModel):
     authors: typing.Dict[str, AuthorEntry] = Field(default_factory=dict, description='Dictionary of authors/roles')
     revisions: typing.Dict[str, RevisionEntry] = Field(default_factory=dict, description='Dictionary of revisions')
     template: TemplateConfig = Field(default_factory=TemplateConfig, description='Template settings')
-
-
-class RevisionEntry(BaseModel):
-    """Revision metadata entry."""
-
-    date: datetime.date = Field(description='Revision date (YYYY-MM-DD)')
-    name: str = Field(description='Author name for revision')
-    changelog: str = Field(description='Revision changelog summary')
-
-
-class TemplateConfig(BaseModel):
-    """Template options."""
-
-    name: str = Field(default='din-6771', description='WireViz template name')
-    sheetsize: str = Field(default='A4', description='Page sheet size (e.g. A4, A3)')
 
 
 class Harness(BaseModel):
@@ -318,7 +329,7 @@ def harness_to_wireviz(
     for item in cable_defs:
         wires = item.pop('wires')
         item['colors'] = [wire['color'] for wire in wires]
-        item['gauge'] = sorted([_gauge_str(Gauge(tuple(wire.pop('gauge'))), gauge_unit) for wire in wires])[len(wires) // 2]
+        item['gauge'] = sorted([_gauge_str(Gauge(wire.pop('gauge')), gauge_unit) for wire in wires])[len(wires) // 2]
         if item.pop('bundled'):
             item['category'] = 'bundled'
 
@@ -359,9 +370,13 @@ def harness_to_wireviz(
     return wireviz_dict
 
 
-def wireviz_to_html(wireviz_dict: typing.Dict[str, typing.Any]) -> bytes:
-    """Create an HTML document from a WireViz definition."""
-    content = json.dumps(wireviz_dict, indent=2)
+def wireviz_to_html(wireviz_input: typing.Union[str, typing.Dict[str, typing.Any]]) -> str:
+    """Create an HTML document string from a WireViz definition (JSON or YAML string/dict)."""
+    if isinstance(wireviz_input, dict):
+        content = json.dumps(wireviz_input, indent=2)
+    else:
+        content = wireviz_input
+
     with tempfile.TemporaryDirectory() as temp_dir_str:
         temp_dir = pathlib.Path(temp_dir_str)
         in_path = temp_dir / 'harness.json'
@@ -371,16 +386,19 @@ def wireviz_to_html(wireviz_dict: typing.Dict[str, typing.Any]) -> bytes:
         res = subprocess.run(shlex.split(command), capture_output=True, text=True)
         if res.returncode != 0:
             raise RuntimeError(f'WireViz CLI error:\nSTDOUT:\n{res.stdout}\nSTDERR:\n{res.stderr}')
+
         out_html = temp_dir / 'harness.html'
-        return out_html.read_bytes()
+        if out_html.exists():
+            return out_html.read_text()
+        raise RuntimeError('WireViz did not produce expected HTML output')
 
 
 def _gauge_str(gauge: Gauge, unit: GaugeUnit) -> str:
     """Convert a gauge to a text string."""
     if unit == GaugeUnit.AWG:
-        gauge_str = f'{gauge.value[0]}'
+        gauge_str = f'{gauge.value}'
     elif unit == GaugeUnit.MM2:
-        gauge_str = f'{gauge.value[1]}'
+        gauge_str = f'{gauge.mm2}'
     else:
         raise ValueError(f'Unknown unit: {unit}')
     return f'{gauge_str} {unit.value}'
