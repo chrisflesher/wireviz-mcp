@@ -383,7 +383,7 @@ def _build_wireviz_cable(
     gauges = sorted([_build_wireviz_gauge_str(w.gauge, gauge_unit) for w in cdef.wires])
     median_gauge = gauges[len(gauges) // 2]
     wirelabels = [
-        f'{_build_wireviz_gauge_str(w.gauge, gauge_unit)} {w.color.value}'
+        _build_wireviz_gauge_str(w.gauge, gauge_unit)
         for w in cdef.wires
     ]
     cable_dict: typing.Dict[str, typing.Any] = {

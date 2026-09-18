@@ -134,7 +134,7 @@ def test_harness_to_wireviz(harness):
     assert data['cables']['W1']['colors'] == ['BN', 'BU', 'GN']
     assert data['cables']['W1']['gauge'] == '20 AWG'
     assert data['cables']['W1']['length'] == '1 m'
-    assert data['cables']['W1']['wirelabels'] == ['20 AWG BN', '20 AWG BU', '18 AWG GN']
+    assert data['cables']['W1']['wirelabels'] == ['20 AWG', '20 AWG', '18 AWG']
     assert data['cables']['W1']['shield'] is False
     assert data['connections'] == [[{'X1': [3]}, {'W1': [2]}], [{'X1': [4]}, {'W1': [3]}], [{'X1': [6]}, {'W1': [1]}]]
 
@@ -181,6 +181,6 @@ def test_harness_to_wireviz_custom_units(harness):
     )
     assert data['cables']['W1']['gauge'] == '0.5 mm2'
     assert data['cables']['W1']['length'] == '100 cm'
-    assert data['cables']['W1']['wirelabels'] == ['0.5 mm2 BN', '0.5 mm2 BU', '0.75 mm2 GN']
+    assert data['cables']['W1']['wirelabels'] == ['0.5 mm2', '0.5 mm2', '0.75 mm2']
 
 
