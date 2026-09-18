@@ -13,9 +13,9 @@ def harness():
         connector_defs=[
             wireviz_mcp.common.Connector(
                 type='D-Sub',
-                gender=wireviz_mcp.common.Gender.FEMALE,
+                subtype=wireviz_mcp.common.Gender.FEMALE,
                 color=wireviz_mcp.common.Color.BLACK,
-                pin_names=['1', '2', '3', '4', '5', '6', '7', '8', '9'],
+                pins=['1', '2', '3', '4', '5', '6', '7', '8', '9'],
             )
         ],
         cable_defs=[
@@ -74,12 +74,12 @@ connections:
 
 def test_connector_duplicate_pin_names():
     """Test that creating a connector with duplicate pin names raises a ValueError."""
-    with pytest.raises(ValueError, match='pin_names must be unique'):
+    with pytest.raises(ValueError, match='pins must be unique'):
         wireviz_mcp.common.Connector(
             type='D-Sub',
-            gender=wireviz_mcp.common.Gender.FEMALE,
+            subtype=wireviz_mcp.common.Gender.FEMALE,
             color=wireviz_mcp.common.Color.BLACK,
-            pin_names=['1', '1', '2'],
+            pins=['1', '1', '2'],
         )
 
 

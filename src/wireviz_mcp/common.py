@@ -12,7 +12,7 @@ import tempfile
 import typing
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 
 class Color(enum.Enum):
@@ -139,23 +139,17 @@ class LengthUnit(enum.Enum):
 class Connector(BaseModel):
     """Connector definition."""
 
-    model_config = ConfigDict(populate_by_name=True)
-
     type: str = Field(description='Brand name')  # noqa: A003
-    subtype: Gender = Field(description='Gender / Subtype', alias='gender')
+    subtype: Gender = Field(description='Gender')
     color: Color = Field(description='Color')
-    pins: typing.List[str] = Field(description='Pin names, typically 1, 2, 3, etc.', min_length=1, alias='pin_names')
+    pins: typing.List[str] = Field(description='Pin names, typically 1, 2, 3, etc.', min_length=1)
 
     @model_validator(mode='after')
     def check_pins(self):
         """Ensure pin names are unique."""
         if len(set(self.pins)) != len(self.pins):
-            raise ValueError('pin_names must be unique')
+            raise ValueError('pins must be unique')
         return self
-
-    @property
-    def pin_names(self) -> typing.List[str]:
-        return self.pins
 
 
 class ConnectorInstance(BaseModel):
@@ -323,7 +317,7 @@ def harness_to_wireviz(
     length_unit: LengthUnit = LengthUnit.METER,
 ) -> typing.Mapping[str, typing.Any]:
     """Create WireViz JSON dict structure from a harness definition."""
-    harness_dict = harness.model_dump(mode='json', by_alias=True)
+    harness_dict = harness.model_dump(mode='json')
     wireviz_connectors = {
         name: _build_wireviz_connector(conn, harness.connector_defs[conn.index])
         for name, conn in harness.connectors.items()
