@@ -197,7 +197,6 @@ class CableInstance(BaseModel):
 
     index: int = Field(description='Cable definition index')
     length: float = Field(description='Cable length in meters')
-    wire_labels: typing.Mapping[int, str] = Field(description='Map of wire index -> label')
 
 
 class AuthorEntry(BaseModel):
@@ -257,10 +256,8 @@ class Harness(BaseModel):
     def check_cables(self):
         """Ensure cable instances are valid."""
         for name, cable in self.cables.items():
-            cable_def = self.cable_defs[cable.index]
-            for wire_index in cable.wire_labels.keys():
-                if not (0 <= wire_index < len(cable_def.wires)):
-                    raise ValueError(f'cables[{name}]: invalid wire index {wire_index}')
+            if not (0 <= cable.index < len(self.cable_defs)):
+                raise ValueError(f'cables[{name}]: invalid cable index {cable.index}')
         return self
 
     @model_validator(mode='after')
@@ -385,9 +382,10 @@ def _build_wireviz_cable(
     colors = [w.color for w in cdef.wires]
     gauges = sorted([_build_wireviz_gauge_str(w.gauge, gauge_unit) for w in cdef.wires])
     median_gauge = gauges[len(gauges) // 2]
-    wirelabels = [''] * len(colors)
-    for idx, label in instance.wire_labels.items():
-        wirelabels[idx] = label
+    wirelabels = [
+        f'{_build_wireviz_gauge_str(w.gauge, gauge_unit)} {w.color.value}'
+        for w in cdef.wires
+    ]
     cable_dict: typing.Dict[str, typing.Any] = {
         'type': cdef.type,
         'color': cdef.color,
