@@ -17,7 +17,7 @@ import wireviz_mcp.common
 mcp = fastmcp.FastMCP('WireViz MCP Server')
 mcp.add_tool(wireviz_mcp.common.concept_to_mermaid)
 mcp.add_tool(wireviz_mcp.common.harness_to_wireviz)
-mcp.add_tool(wireviz_mcp.common.wireviz_to_bom)
+mcp.add_tool(wireviz_mcp.common.wireviz_to_html)
 
 
 @mcp.tool()
@@ -30,7 +30,8 @@ def wireviz_to_png(wireviz_yaml: str) -> fastmcp.utilities.types.Image:
 @mcp.tool()
 def mermaid_to_svg(mermaid_str: str) -> fastmcp.utilities.types.Image:
     """Create a PNG image from a Mermaid diagram string."""
-    svg_bytes = mermaidx.to_svg(mermaid_str).encode("utf-8")
+    diagram = mermaidx.render(mermaid_str)
+    svg_bytes = diagram.svg().encode('utf-8')
     return fastmcp.utilities.types.Image(data=svg_bytes, format='svg+xml')
 
 

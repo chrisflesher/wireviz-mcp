@@ -13,9 +13,9 @@ def harness():
         connector_defs=[
             wireviz_mcp.common.Connector(
                 type='D-Sub',
-                gender=wireviz_mcp.common.Gender.FEMALE,
+                subtype=wireviz_mcp.common.Gender.FEMALE,
                 color=wireviz_mcp.common.Color.BLACK,
-                pin_names=['1', '2', '3', '4', '5', '6', '7', '8', '9'],
+                pins=['1', '2', '3', '4', '5', '6', '7', '8', '9'],
             )
         ],
         cable_defs=[
@@ -25,9 +25,9 @@ def harness():
                 shield=False,
                 color=wireviz_mcp.common.Color.GREY,
                 wires=[
-                    wireviz_mcp.common.Wire(color=wireviz_mcp.common.Color.BROWN, gauge=0.5),
-                    wireviz_mcp.common.Wire(color=wireviz_mcp.common.Color.BLUE, gauge=0.5),
-                    wireviz_mcp.common.Wire(color=wireviz_mcp.common.Color.GREEN, gauge=0.75),
+                    wireviz_mcp.common.Wire(color=wireviz_mcp.common.Color.BROWN, gauge=wireviz_mcp.common.Gauge.AWG_20),
+                    wireviz_mcp.common.Wire(color=wireviz_mcp.common.Color.BLUE, gauge=wireviz_mcp.common.Gauge.AWG_20),
+                    wireviz_mcp.common.Wire(color=wireviz_mcp.common.Color.GREEN, gauge=wireviz_mcp.common.Gauge.AWG_18),
                 ],
             )
         ],
@@ -41,7 +41,6 @@ def harness():
             'W1': wireviz_mcp.common.CableInstance(
                 index=0,
                 length=1.0,
-                wire_labels={0: 'RX', 1: 'TX', 2: 'GND'},
             )
         },
         connections=[
@@ -74,12 +73,12 @@ connections:
 
 def test_connector_duplicate_pin_names():
     """Test that creating a connector with duplicate pin names raises a ValueError."""
-    with pytest.raises(ValueError, match='pin_names must be unique'):
+    with pytest.raises(ValueError, match='pins must be unique'):
         wireviz_mcp.common.Connector(
             type='D-Sub',
-            gender=wireviz_mcp.common.Gender.FEMALE,
+            subtype=wireviz_mcp.common.Gender.FEMALE,
             color=wireviz_mcp.common.Color.BLACK,
-            pin_names=['1', '1', '2'],
+            pins=['1', '1', '2'],
         )
 
 
@@ -97,12 +96,12 @@ def test_harness_validation_invalid_pin_index(harness):
         wireviz_mcp.common.Harness(**harness_data)
 
 
-def test_harness_validation_invalid_wire_index(harness):
-    """Test that creating a harness with an invalid wire index raises a ValueError."""
+def test_harness_validation_invalid_cable_index(harness):
+    """Test that creating a harness with an invalid cable index raises a ValueError."""
     harness_data = harness.model_dump()
-    harness_data['cables']['W1']['wire_labels'][99] = 'w4'
+    harness_data['cables']['W1']['index'] = 99
 
-    with pytest.raises(ValueError, match='invalid wire index'):
+    with pytest.raises(ValueError, match='invalid cable index'):
         wireviz_mcp.common.Harness(**harness_data)
 
 
@@ -116,43 +115,36 @@ def test_harness_validation_out_of_range_connection_index(harness):
 
 
 def test_harness_to_wireviz(harness):
-    """Test the conversion of a harness to a WireViz YAML string."""
-    yaml_str = wireviz_mcp.common.harness_to_wireviz(harness)
-    data = yaml.safe_load(yaml_str)
+    """Test the conversion of a harness to WireViz JSON dictionary."""
+    data = wireviz_mcp.common.harness_to_wireviz(harness)
 
-    assert 'connector_defs' in data
-    assert 'cable_defs' in data
     assert 'connectors' in data
     assert 'cables' in data
     assert 'connections' in data
+    assert 'metadata' in data
 
     # check connector fields
-    assert data['connector_defs'][0]['subtype'] == 'female'
-    assert data['connector_defs'][0]['color'] == 'BK'
-    assert data['connector_defs'][0]['pins'] == [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    assert data['connectors']['X1']['subtype'] == 'female'
+    assert data['connectors']['X1']['color'] == 'BK'
+    assert data['connectors']['X1']['pins'] == [1, 2, 3, 4, 5, 6, 7, 8, 9]
     assert len(data['connectors']['X1']['pinlabels']) == 9
 
     # check cable fields
-    assert data['cable_defs'][0]['category'] == 'bundled'
-    assert data['cable_defs'][0]['colors'] == ['BN', 'BU', 'GN']
-    assert data['cable_defs'][0]['gauge'] == 0.5  # Median of [0.5, 0.5, 0.75]
-    assert data['cables']['W1']['length'] == 1.0
-    assert len(data['cables']['W1']['wirelabels']) == 3
-    assert data['cable_defs'][0]['shield'] is False
+    assert data['cables']['W1']['category'] == 'bundled'
+    assert data['cables']['W1']['colors'] == ['BN', 'BU', 'GN']
+    assert data['cables']['W1']['gauge'] == '20 AWG'
+    assert data['cables']['W1']['length'] == '1 m'
+    assert data['cables']['W1']['wirelabels'] == ['20 AWG', '20 AWG', '18 AWG']
+    assert data['cables']['W1']['shield'] is False
     assert data['connections'] == [[{'X1': [3]}, {'W1': [2]}], [{'X1': [4]}, {'W1': [3]}], [{'X1': [6]}, {'W1': [1]}]]
 
 
-def test_wireviz_to_bom(wireviz_yaml):
-    """Test that wireviz_to_bom calls subprocess.run with the correct command."""
-    result = wireviz_mcp.common.wireviz_to_bom(wireviz_yaml)
+def test_wireviz_to_html(harness):
+    """Test that wireviz_to_html compiles wireviz definition without error."""
+    json_dict = wireviz_mcp.common.harness_to_wireviz(harness)
+    result = wireviz_mcp.common.wireviz_to_html(json_dict)
     assert isinstance(result, str)
-
-
-def test_wireviz_to_png(wireviz_yaml):
-    """Test that wireviz_to_png calls subprocess.run with the correct command."""
-    # Mock subprocess.run
-    result = wireviz_mcp.common.wireviz_to_png(wireviz_yaml)
-    assert isinstance(result, bytes)
+    assert '<html>' in result.lower() or '<!doctype html>' in result.lower()
 
 
 def test_concept_to_mermaid():
@@ -178,3 +170,17 @@ def test_concept_to_mermaid():
     node_2 --- node_1
 '''
     assert mermaid_str.strip() == expected_str.strip()
+
+
+def test_harness_to_wireviz_custom_units(harness):
+    """Test the conversion of a harness to WireViz dict with custom units."""
+    data = wireviz_mcp.common.harness_to_wireviz(
+        harness,
+        gauge_unit=wireviz_mcp.common.GaugeUnit.MM2,
+        length_unit=wireviz_mcp.common.LengthUnit.CENTIMETER,
+    )
+    assert data['cables']['W1']['gauge'] == '0.5 mm2'
+    assert data['cables']['W1']['length'] == '100 cm'
+    assert data['cables']['W1']['wirelabels'] == ['0.5 mm2', '0.5 mm2', '0.75 mm2']
+
+
