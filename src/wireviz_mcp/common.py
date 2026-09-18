@@ -12,7 +12,7 @@ import tempfile
 import typing
 
 import yaml
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class Color(enum.Enum):
@@ -139,24 +139,30 @@ class LengthUnit(enum.Enum):
 class Connector(BaseModel):
     """Connector definition."""
 
+    model_config = ConfigDict(populate_by_name=True)
+
     type: str = Field(description='Brand name')  # noqa: A003
-    gender: Gender = Field(description='Gender')
+    subtype: Gender = Field(description='Gender / Subtype', alias='gender')
     color: Color = Field(description='Color')
-    pin_names: typing.List[str] = Field(description='Pin names, typically 1, 2, 3, etc.', min_length=1)
+    pins: typing.List[str] = Field(description='Pin names, typically 1, 2, 3, etc.', min_length=1, alias='pin_names')
 
     @model_validator(mode='after')
-    def check_pin_names(self):
+    def check_pins(self):
         """Ensure pin names are unique."""
-        if len(set(self.pin_names)) != len(self.pin_names):
+        if len(set(self.pins)) != len(self.pins):
             raise ValueError('pin_names must be unique')
         return self
+
+    @property
+    def pin_names(self) -> typing.List[str]:
+        return self.pins
 
 
 class ConnectorInstance(BaseModel):
     """Connector instance."""
 
     index: int = Field(description='Connector definition index')
-    pin_labels: typing.Dict[int, str] = Field(description='Map of pin index -> label')
+    pin_labels: typing.Mapping[int, str] = Field(description='Map of pin index -> label')
 
 
 class Wire(BaseModel):
@@ -181,7 +187,7 @@ class CableInstance(BaseModel):
 
     index: int = Field(description='Cable definition index')
     length: float = Field(description='Cable length in meters')
-    wire_labels: typing.Dict[int, str] = Field(description='Map of wire index -> label')
+    wire_labels: typing.Mapping[int, str] = Field(description='Map of wire index -> label')
 
 
 class AuthorEntry(BaseModel):
@@ -212,8 +218,8 @@ class Metadata(BaseModel):
     title: str = Field(default='Main Harness Assembly', description='Harness assembly title')
     pn: typing.Optional[str] = Field(default=None, description='Part number')
     company: typing.Optional[str] = Field(default=None, description='Company name')
-    authors: typing.Dict[str, AuthorEntry] = Field(default_factory=dict, description='Dictionary of authors/roles')
-    revisions: typing.Dict[str, RevisionEntry] = Field(default_factory=dict, description='Dictionary of revisions')
+    authors: typing.Mapping[str, AuthorEntry] = Field(default_factory=dict, description='Dictionary of authors/roles')
+    revisions: typing.Mapping[str, RevisionEntry] = Field(default_factory=dict, description='Dictionary of revisions')
     template: TemplateConfig = Field(default_factory=TemplateConfig, description='Template settings')
 
 
@@ -222,9 +228,9 @@ class Harness(BaseModel):
 
     connector_defs: typing.List[Connector] = Field(description='Connector definitions', min_length=1)
     cable_defs: typing.List[Cable] = Field(description='Cable definitions', min_length=1)
-    connectors: typing.Dict[str, ConnectorInstance] = Field(description='Map of name (e.g. J1, J2, etc.) -> instance')
-    cables: typing.Dict[str, CableInstance] = Field(description='Map of name (e.g. W1, W2, etc.) -> instance')
-    connections: typing.List[typing.Dict[str, typing.List[int]]] = Field(description='Maps of connector / cable names -> pin / wire indices.')
+    connectors: typing.Mapping[str, ConnectorInstance] = Field(description='Map of name (e.g. J1, J2, etc.) -> instance')
+    cables: typing.Mapping[str, CableInstance] = Field(description='Map of name (e.g. W1, W2, etc.) -> instance')
+    connections: typing.List[typing.Mapping[str, typing.List[int]]] = Field(description='Maps of connector / cable names -> pin / wire indices.')
     metadata: Metadata = Field(default_factory=Metadata, description='Harness metadata')
 
     @model_validator(mode='after')
@@ -233,7 +239,7 @@ class Harness(BaseModel):
         for name, connector in self.connectors.items():
             connector_def = self.connector_defs[connector.index]
             for pin_index in connector.pin_labels.keys():
-                if not (0 <= pin_index < len(connector_def.pin_names)):
+                if not (0 <= pin_index < len(connector_def.pins)):
                     raise ValueError(f'connectors[{name}]: invalid pin index {pin_index}')
         return self
 
@@ -255,7 +261,7 @@ class Harness(BaseModel):
                 if name in self.connectors:
                     connector = self.connectors[name]
                     connector_def = self.connector_defs[connector.index]
-                    num_pins = len(connector_def.pin_names)
+                    num_pins = len(connector_def.pins)
                     if any(i < 0 or i >= num_pins for i in items):
                         raise ValueError(f'connections[{index}][{name}]: invalid pin index')
                 elif name in self.cables:
@@ -315,65 +321,32 @@ def harness_to_wireviz(
     harness: Harness,
     gauge_unit: GaugeUnit = GaugeUnit.AWG,
     length_unit: LengthUnit = LengthUnit.METER,
-) -> typing.Dict[str, typing.Any]:
+) -> typing.Mapping[str, typing.Any]:
     """Create WireViz JSON dict structure from a harness definition."""
-    harness_dict = harness.model_dump(mode='json')
-    connector_defs = harness_dict.pop('connector_defs')
-    cable_defs = harness_dict.pop('cable_defs')
-
-    for item in connector_defs:
-        item['type'] = item.get('type', '')
-        item['subtype'] = item.pop('gender', '')
-        item['pins'] = [int(p) if isinstance(p, str) and p.isdigit() else p for p in item.pop('pin_names')]
-
-    for item in cable_defs:
-        wires = item.pop('wires')
-        item['colors'] = [wire['color'] for wire in wires]
-        item['gauge'] = sorted([_gauge_str(Gauge(wire.pop('gauge')), gauge_unit) for wire in wires])[len(wires) // 2]
-        if item.pop('bundled'):
-            item['category'] = 'bundled'
-
-    wireviz_connectors = {}
-    for name, connector in harness_dict['connectors'].items():
-        connector_def_index = connector.pop('index')
-        connector_def = dict(connector_defs[connector_def_index])
-        pin_labels = connector.pop('pin_labels')
-        pinlabels = [''] * len(connector_def['pins'])
-        for index, label in pin_labels.items():
-            pinlabels[int(index)] = label
-        connector_def['pinlabels'] = pinlabels
-        wireviz_connectors[name] = connector_def
-
-    wireviz_cables = {}
-    for name, cable in harness_dict['cables'].items():
-        cable_def_index = cable.pop('index')
-        cable_def = dict(cable_defs[cable_def_index])
-        wire_labels = cable.pop('wire_labels')
-        wirelabels = [''] * len(cable_def['colors'])
-        for index, label in wire_labels.items():
-            wirelabels[int(index)] = label
-        cable_def['wirelabels'] = wirelabels
-        cable_def['length'] = _length_str(cable.pop('length'), length_unit)
-        wireviz_cables[name] = cable_def
-
-    connections_list = harness_dict['connections']
-    for index, connection in enumerate(connections_list):
-        connections_list[index] = _resolve_connection_target(connection, harness)
-
-    wireviz_dict = {
+    harness_dict = harness.model_dump(mode='json', by_alias=True)
+    wireviz_connectors = {
+        name: _build_wireviz_connector(conn, harness.connector_defs[conn.index])
+        for name, conn in harness.connectors.items()
+    }
+    wireviz_cables = {
+        name: _build_wireviz_cable(cbl, harness.cable_defs[cbl.index], gauge_unit, length_unit)
+        for name, cbl in harness.cables.items()
+    }
+    wireviz_connections = [
+        _build_wireviz_connection(conn, harness) for conn in harness.connections
+    ]
+    return {
         'connectors': wireviz_connectors,
         'cables': wireviz_cables,
-        'connections': connections_list,
+        'connections': wireviz_connections,
         'metadata': harness_dict.get('metadata', {}),
     }
 
-    return wireviz_dict
 
-
-def wireviz_to_html(wireviz_input: typing.Union[str, typing.Dict[str, typing.Any]]) -> str:
+def wireviz_to_html(wireviz_input: typing.Union[str, typing.Mapping[str, typing.Any]]) -> str:
     """Create an HTML document string from a WireViz definition (JSON or YAML string/dict)."""
-    if isinstance(wireviz_input, dict):
-        content = json.dumps(wireviz_input, indent=2)
+    if isinstance(wireviz_input, (dict, typing.Mapping)):
+        content = json.dumps(dict(wireviz_input), indent=2)
     else:
         content = wireviz_input
 
@@ -393,7 +366,78 @@ def wireviz_to_html(wireviz_input: typing.Union[str, typing.Dict[str, typing.Any
         raise RuntimeError('WireViz did not produce expected HTML output')
 
 
-def _gauge_str(gauge: Gauge, unit: GaugeUnit) -> str:
+def _build_wireviz_cable(
+    instance: CableInstance,
+    cdef: Cable,
+    gauge_unit: GaugeUnit,
+    length_unit: LengthUnit,
+) -> typing.Mapping[str, typing.Any]:
+    colors = [w.color.value for w in cdef.wires]
+    gauges = sorted([_build_wireviz_gauge_str(w.gauge, gauge_unit) for w in cdef.wires])
+    median_gauge = gauges[len(gauges) // 2]
+    wirelabels = [''] * len(colors)
+    for idx, label in instance.wire_labels.items():
+        wirelabels[idx] = label
+    cable_dict: typing.Dict[str, typing.Any] = {
+        'type': cdef.type,
+        'color': cdef.color.value,
+        'colors': colors,
+        'gauge': median_gauge,
+        'shield': cdef.shield,
+        'wirelabels': wirelabels,
+        'length': _build_wireviz_length_str(instance.length, length_unit),
+    }
+    if cdef.bundled:
+        cable_dict['category'] = 'bundled'
+    return cable_dict
+
+
+def _build_wireviz_connector(instance: ConnectorInstance, cdef: Connector) -> typing.Mapping[str, typing.Any]:
+    raw_pins = cdef.pins
+    pins = [int(p) if isinstance(p, str) and p.isdigit() else p for p in raw_pins]
+    pinlabels = [''] * len(pins)
+    for idx, label in instance.pin_labels.items():
+        pinlabels[idx] = label
+    return {
+        'type': cdef.type,
+        'subtype': cdef.subtype.value,
+        'color': cdef.color.value,
+        'pins': pins,
+        'pinlabels': pinlabels,
+    }
+
+
+def _build_wireviz_connection(
+    connection: typing.Mapping[str, typing.List[int]],
+    harness: Harness,
+) -> typing.List[typing.Mapping[str, typing.List[typing.Union[str, int]]]]:
+    conn_keys = list(connection.keys())
+    cables_keys = [k for k in conn_keys if k in harness.cables]
+    connectors_keys = [k for k in conn_keys if k in harness.connectors]
+    other_keys = [k for k in conn_keys if k not in harness.cables and k not in harness.connectors]
+    ordered_keys = []
+    if connectors_keys and cables_keys:
+        ordered_keys.append(connectors_keys[0])
+        ordered_keys.extend(cables_keys)
+        ordered_keys.extend(connectors_keys[1:])
+        ordered_keys.extend(other_keys)
+    else:
+        ordered_keys = conn_keys
+    result = []
+    for key in ordered_keys:
+        indices = connection[key]
+        if key in harness.connectors:
+            pins = harness.connector_defs[harness.connectors[key].index].pins
+            resolved = [int(pins[i]) if isinstance(pins[i], str) and pins[i].isdigit() else pins[i] for i in indices]
+            result.append({key: resolved})
+        elif key in harness.cables:
+            result.append({key: [i + 1 for i in indices]})
+        else:
+            result.append({key: indices})
+    return result
+
+
+def _build_wireviz_gauge_str(gauge: Gauge, unit: GaugeUnit) -> str:
     """Convert a gauge to a text string."""
     if unit == GaugeUnit.AWG:
         gauge_str = f'{gauge.value}'
@@ -404,7 +448,7 @@ def _gauge_str(gauge: Gauge, unit: GaugeUnit) -> str:
     return f'{gauge_str} {unit.value}'
 
 
-def _length_str(length: float, unit: LengthUnit) -> str:
+def _build_wireviz_length_str(length: float, unit: LengthUnit) -> str:
     """Convert a length in meters to a text string."""
     if unit == LengthUnit.CENTIMETER:
         length_str = f'{round(length * 100):d}'
@@ -433,30 +477,3 @@ def _get_wireviz_cmd() -> str:
     if which_wireviz:
         return which_wireviz
     return 'wireviz'
-
-
-def _resolve_connection_target(connection: typing.Dict[str, typing.List[int]], harness: Harness) -> typing.List[typing.Dict[str, typing.List[typing.Union[str, int]]]]:
-    conn_keys = list(connection.keys())
-    cables_keys = [k for k in conn_keys if k in harness.cables]
-    connectors_keys = [k for k in conn_keys if k in harness.connectors]
-    other_keys = [k for k in conn_keys if k not in harness.cables and k not in harness.connectors]
-    ordered_keys = []
-    if connectors_keys and cables_keys:
-        ordered_keys.append(connectors_keys[0])
-        ordered_keys.extend(cables_keys)
-        ordered_keys.extend(connectors_keys[1:])
-        ordered_keys.extend(other_keys)
-    else:
-        ordered_keys = conn_keys
-    result = []
-    for key in ordered_keys:
-        indices = connection[key]
-        if key in harness.connectors:
-            pins = harness.connector_defs[harness.connectors[key].index].pin_names
-            resolved = [int(pins[i]) if isinstance(pins[i], str) and pins[i].isdigit() else pins[i] for i in indices]
-            result.append({key: resolved})
-        elif key in harness.cables:
-            result.append({key: [i + 1 for i in indices]})
-        else:
-            result.append({key: indices})
-    return result
